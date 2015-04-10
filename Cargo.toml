@@ -1,9 +1,10 @@
 [package]
 name = "typed-arena"
-version = "1.0.0"
+version = "1.0.1"
 authors = ["Simon Sapin <simon.sapin@exyr.org>"]
 license = "MIT"
 description = "The arena, a fast but limited type of allocator"
+repository = "https://github.com/SimonSapin/rust-typed-arena"
 
 [lib]
 name = "typed_arena"
