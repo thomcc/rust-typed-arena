@@ -1,0 +1,11 @@
+[package]
+name = "typed-arena"
+version = "1.0.0"
+authors = ["Simon Sapin <simon.sapin@exyr.org>"]
+license = "MIT"
+description = "The arena, a fast but limited type of allocator"
+
+[lib]
+name = "typed_arena"
+path = "lib.rs"
+doctest = false
