@@ -1,6 +1,6 @@
 [package]
 name = "typed-arena"
-version = "1.0.1"
+version = "1.1.0"
 authors = ["Simon Sapin <simon.sapin@exyr.org>"]
 license = "MIT"
 description = "The arena, a fast but limited type of allocator"

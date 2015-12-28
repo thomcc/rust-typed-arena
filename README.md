@@ -13,3 +13,6 @@ distributed with rustc, but is available of Rust beta/stable.
 
 It is probably slightly less efficient, but is simpler internally and uses much less unsafe code.
 It is based on a `Vec<Vec<T>>` instead of raw pointers and manual drops.
+
+There is also a method `into_vec()` to recover ownership of allocated objects when
+the arena is no longer required, instead of destroying everything.

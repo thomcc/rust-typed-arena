@@ -74,6 +74,15 @@ impl<T> Arena<T> {
 
         new_item_ref
     }
+
+    pub fn into_vec(self) -> Vec<T> {
+        let chunks = self.chunks.into_inner();
+        let mut result = chunks.current;
+        for mut vec in chunks.rest {
+            result.append(&mut vec);
+        }
+        result
+    }
 }
 
 impl<T> ChunkList<T> {
@@ -142,6 +151,17 @@ fn it_works() {
         assert   !(node.0.unwrap().0.unwrap().0.is_none());
 
         assert_eq!(drop_counter.get(), 0);
+
     }
     assert_eq!(drop_counter.get(), 7);
+
+    let arena = Arena::with_capacity(1);  // force multiple inner vecs
+    for &s in &["t", "e", "s", "t"] {
+        arena.alloc(String::from(s));
+    }
+    let vec = arena.into_vec();
+    assert_eq!(vec.len(), 4);
+    assert_eq!(vec.iter().filter(|el| *el == "t").count(), 2);
+    assert_eq!(vec.iter().filter(|el| *el == "e").count(), 1);
+    assert_eq!(vec.iter().filter(|el| *el == "s").count(), 1);
 }
