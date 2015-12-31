@@ -76,11 +76,14 @@ impl<T> Arena<T> {
     }
 
     pub fn into_vec(self) -> Vec<T> {
-        let chunks = self.chunks.into_inner();
-        let mut result = chunks.current;
+        let mut chunks = self.chunks.into_inner();
+        // keep order of allocation in the resulting Vec
+        let n = chunks.rest.iter().fold(chunks.current.len(), |a, v| a + v.len());
+        let mut result = Vec::with_capacity(n);
         for mut vec in chunks.rest {
             result.append(&mut vec);
         }
+        result.append(&mut chunks.current);
         result
     }
 }
@@ -160,8 +163,5 @@ fn it_works() {
         arena.alloc(String::from(s));
     }
     let vec = arena.into_vec();
-    assert_eq!(vec.len(), 4);
-    assert_eq!(vec.iter().filter(|el| *el == "t").count(), 2);
-    assert_eq!(vec.iter().filter(|el| *el == "e").count(), 1);
-    assert_eq!(vec.iter().filter(|el| *el == "s").count(), 1);
+    assert_eq!(vec, vec!["t", "e", "s", "t"]);
 }
