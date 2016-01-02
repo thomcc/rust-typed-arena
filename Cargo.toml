@@ -8,5 +8,5 @@ repository = "https://github.com/SimonSapin/rust-typed-arena"
 
 [lib]
 name = "typed_arena"
-path = "lib.rs"
+path = "src/lib.rs"
 doctest = false
