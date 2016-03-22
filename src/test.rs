@@ -1,4 +1,5 @@
 use super::*;
+use std::sync::atomic::{ATOMIC_USIZE_INIT, AtomicUsize, Ordering};
 
 #[test]
 fn arena_as_intended() {
@@ -70,3 +71,45 @@ fn ensure_into_vec_maintains_order_of_allocation() {
     assert_eq!(vec, vec!["t", "e", "s", "t"]);
 }
 
+#[test]
+fn it_supports_placement() {
+    struct Monster { health: u8 };
+
+    let arena = Arena::new();
+    let troll = in &arena { Monster { health: 42 } };
+    assert_eq!(troll.health, 42);
+}
+
+#[test]
+fn it_supports_placement_many_times() {
+    struct Monster { health: u8 };
+
+    let arena = Arena::new();
+    for _ in 0..10000 {
+        let troll = in &arena { Monster { health: 42 } };
+        assert_eq!(troll.health, 42);
+    }
+
+    // Make sure we can grow past the initial chunk
+    assert!(arena.chunks.borrow().rest.len() > 0);
+}
+
+#[test]
+#[should_panic(expected = "struct creation failed")]
+fn it_supports_placement_with_a_panic() {
+    const DROP_COUNTER: AtomicUsize = ATOMIC_USIZE_INIT;
+
+    struct Monster { pub health: u8 };
+
+    impl Drop for Monster {
+        fn drop(&mut self) {
+            let old = DROP_COUNTER.fetch_add(1, Ordering::SeqCst);
+            // when std::panic::recover is stable, use that instead
+            assert_eq!(0, old);
+        }
+    }
+
+    let arena = Arena::new();
+    let _ = in &arena { Monster { health: 42 } };
+    let _ = in &arena { Monster { health: panic!("struct creation failed") } };
+}
