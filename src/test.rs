@@ -21,7 +21,7 @@ fn arena_as_intended() {
         assert_eq!(arena.chunks.borrow().rest.len(), 0);
 
         node = arena.alloc(Node(Some(node), 2, DropTracker(&drop_counter)));
-        assert_eq!(arena.chunks.borrow().rest.len(), 1);
+        assert_eq!(arena.chunks.borrow().rest.len(), 0);
 
         node = arena.alloc(Node(Some(node), 3, DropTracker(&drop_counter)));
         assert_eq!(arena.chunks.borrow().rest.len(), 1);
@@ -33,7 +33,7 @@ fn arena_as_intended() {
         assert_eq!(node.0.unwrap().1, 3);
         assert_eq!(node.0.unwrap().0.unwrap().1, 2);
         assert_eq!(node.0.unwrap().0.unwrap().0.unwrap().1, 1);
-        assert   !(node.0.unwrap().0.unwrap().0.unwrap().0.is_none());
+        assert!(node.0.unwrap().0.unwrap().0.unwrap().0.is_none());
 
         mem::drop(node);
         assert_eq!(drop_counter.get(), 0);
@@ -42,7 +42,7 @@ fn arena_as_intended() {
         assert_eq!(arena.chunks.borrow().rest.len(), 1);
 
         node = arena.alloc(Node(Some(node), 6, DropTracker(&drop_counter)));
-        assert_eq!(arena.chunks.borrow().rest.len(), 2);
+        assert_eq!(arena.chunks.borrow().rest.len(), 1);
 
         node = arena.alloc(Node(Some(node), 7, DropTracker(&drop_counter)));
         assert_eq!(arena.chunks.borrow().rest.len(), 2);
@@ -52,7 +52,7 @@ fn arena_as_intended() {
         assert_eq!(node.1, 7);
         assert_eq!(node.0.unwrap().1, 6);
         assert_eq!(node.0.unwrap().0.unwrap().1, 5);
-        assert   !(node.0.unwrap().0.unwrap().0.is_none());
+        assert!(node.0.unwrap().0.unwrap().0.is_none());
 
         assert_eq!(drop_counter.get(), 0);
 

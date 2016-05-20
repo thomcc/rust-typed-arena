@@ -19,7 +19,9 @@
 
 use std::cell::RefCell;
 use std::cmp;
+use std::iter;
 use std::mem;
+use std::slice;
 
 #[cfg(test)]
 mod test;
@@ -55,27 +57,57 @@ impl<T> Arena<T> {
     }
 
     pub fn alloc(&self, value: T) -> &mut T {
+        &mut self.alloc_extend(iter::once(value))[0]
+    }
+
+    pub fn alloc_extend<I>(&self, iter: I) -> &mut [T]
+        where I: Iterator<Item = T> + ExactSizeIterator
+    {
         let mut chunks = self.chunks.borrow_mut();
+
+        if chunks.current.len() + iter.len() > chunks.current.capacity() {
+            chunks.reserve(iter.len());
+        }
 
         // At this point, the current chunk must have free capacity.
         let next_item_index = chunks.current.len();
-        chunks.current.push(value);
-        let new_item_ref = {
-            let new_item_ref = &mut chunks.current[next_item_index];
+        chunks.current.extend(iter);
+        let new_slice_ref = {
+            let new_slice_ref = &mut chunks.current[next_item_index..];
 
             // Extend the lifetime from that of `chunks_borrow` to that of `self`.
             // This is OK because we’re careful to never move items
             // by never pushing to inner `Vec`s beyond their initial capacity.
             // The returned reference is unique (`&mut`):
             // the `Arena` never gives away references to existing items.
-            unsafe { mem::transmute::<&mut T, &mut T>(new_item_ref) }
+            unsafe { mem::transmute::<&mut [T], &mut [T]>(new_slice_ref) }
         };
 
-        if chunks.current.len() == chunks.current.capacity() {
-            chunks.grow();
+        new_slice_ref
+    }
+
+    pub unsafe fn alloc_uninitialized(&self, num: usize) -> *mut [T] {
+        let mut chunks = self.chunks.borrow_mut();
+
+        if chunks.current.len() + num > chunks.current.capacity() {
+            chunks.reserve(num);
         }
 
-        new_item_ref
+        // At this point, the current chunk must have free capacity.
+        let next_item_index = chunks.current.len();
+        chunks.current.set_len(next_item_index + num);
+        // Extend the lifetime...
+        &mut chunks.current[next_item_index..] as *mut _
+    }
+
+    pub fn uninitialized_array(&self) -> *mut [T] {
+        let chunks = self.chunks.borrow();
+        let len = chunks.current.capacity() - chunks.current.len();
+        let next_item_index = chunks.current.len();
+        let slice = &chunks.current[next_item_index..];
+        unsafe {
+            slice::from_raw_parts_mut(slice.as_ptr() as *mut T, len) as *mut _
+        }
     }
 
     pub fn into_vec(self) -> Vec<T> {
@@ -94,11 +126,11 @@ impl<T> Arena<T> {
 impl<T> ChunkList<T> {
     #[inline(never)]
     #[cold]
-    fn grow(&mut self) {
-        // Replace the current chunk with a newly allocated chunk.
-        let new_capacity = self.current.capacity().checked_mul(2).unwrap();
+    fn reserve(&mut self, additional: usize) {
+        let double_cap = self.current.capacity().checked_mul(2).expect("capacity overflow");
+        let required_cap = additional.checked_next_power_of_two().expect("capacity overflow");
+        let new_capacity = cmp::max(double_cap, required_cap);
         let chunk = mem::replace(&mut self.current, Vec::with_capacity(new_capacity));
         self.rest.push(chunk);
     }
 }
-
