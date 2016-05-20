@@ -56,10 +56,14 @@ impl<T> Arena<T> {
         }
     }
 
+    /// Allocates a value in the arena, and returns a mutable reference
+    /// to that value.
     pub fn alloc(&self, value: T) -> &mut T {
         &mut self.alloc_extend(iter::once(value))[0]
     }
 
+    /// Uses the contents of an iterator to allocate values in the arena.
+    /// Returns a mutable slice that contains these values.
     pub fn alloc_extend<I>(&self, iter: I) -> &mut [T]
         where I: Iterator<Item = T> + ExactSizeIterator
     {
@@ -86,6 +90,7 @@ impl<T> Arena<T> {
         new_slice_ref
     }
 
+    /// Allocates space for a given number of values, but doesn't initialize it.
     pub unsafe fn alloc_uninitialized(&self, num: usize) -> *mut [T] {
         let mut chunks = self.chunks.borrow_mut();
 
@@ -100,6 +105,7 @@ impl<T> Arena<T> {
         &mut chunks.current[next_item_index..] as *mut _
     }
 
+    /// Returns unused space.
     pub fn uninitialized_array(&self) -> *mut [T] {
         let chunks = self.chunks.borrow();
         let len = chunks.current.capacity() - chunks.current.len();
