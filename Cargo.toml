@@ -4,6 +4,7 @@ version = "1.2.0"
 authors = ["Simon Sapin <simon.sapin@exyr.org>"]
 license = "MIT"
 description = "The arena, a fast but limited type of allocator"
+documentation = "https://docs.rs/typed-arena"
 repository = "https://github.com/SimonSapin/rust-typed-arena"
 
 [lib]

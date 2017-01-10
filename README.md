@@ -1,6 +1,8 @@
 rust-typed-arena
 ================
 
+[![Docs Status](https://docs.rs/typed-arena/badge.svg)](https://docs.rs/typed-arena)
+
 The arena, a fast but limited type of allocator.
 
 Arenas are a type of allocator that destroy the objects within,
