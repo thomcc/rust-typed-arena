@@ -51,7 +51,7 @@ impl<T> Arena<T> {
         Arena {
             chunks: RefCell::new(ChunkList {
                 current: Vec::with_capacity(n),
-                rest: vec![]
+                rest: vec![],
             }),
         }
     }
@@ -64,18 +64,43 @@ impl<T> Arena<T> {
 
     /// Uses the contents of an iterator to allocate values in the arena.
     /// Returns a mutable slice that contains these values.
-    pub fn alloc_extend<I>(&self, iter: I) -> &mut [T]
-        where I: Iterator<Item = T> + ExactSizeIterator
+    pub fn alloc_extend<I>(&self, iterable: I) -> &mut [T]
+        where I: IntoIterator<Item = T>
     {
+        let mut iter = iterable.into_iter();
+
         let mut chunks = self.chunks.borrow_mut();
 
-        if chunks.current.len() + iter.len() > chunks.current.capacity() {
-            chunks.reserve(iter.len());
+        let iter_min_len = iter.size_hint().0;
+        let mut next_item_index;
+        if chunks.current.len() + iter_min_len > chunks.current.capacity() {
+            chunks.reserve(iter_min_len);
+            chunks.current.extend(iter);
+            next_item_index = 0;
+        } else {
+            next_item_index = chunks.current.len();
+            let mut i = 0;
+            while let Some(elem) = iter.next() {
+                if chunks.current.len() == chunks.current.capacity() {
+                    // The iterator was larger than we could fit into the current chunk.
+                    let chunks = &mut *chunks;
+                    // Create a new chunk into which we can freely push the entire iterator into
+                    chunks.reserve(i + 1);
+                    let previous_chunk = chunks.rest.last_mut().unwrap();
+                    let previous_chunk_len = previous_chunk.len();
+                    // Move any elements we put into the previous chunk into this new chunk
+                    chunks.current.extend(previous_chunk.drain(previous_chunk_len - i..));
+                    chunks.current.push(elem);
+                    // And the remaining elements in the iterator
+                    chunks.current.extend(iter);
+                    next_item_index = 0;
+                    break;
+                } else {
+                    chunks.current.push(elem);
+                }
+                i += 1;
+            }
         }
-
-        // At this point, the current chunk must have free capacity.
-        let next_item_index = chunks.current.len();
-        chunks.current.extend(iter);
         let new_slice_ref = {
             let new_slice_ref = &mut chunks.current[next_item_index..];
 
@@ -111,9 +136,7 @@ impl<T> Arena<T> {
         let len = chunks.current.capacity() - chunks.current.len();
         let next_item_index = chunks.current.len();
         let slice = &chunks.current[next_item_index..];
-        unsafe {
-            slice::from_raw_parts_mut(slice.as_ptr() as *mut T, len) as *mut _
-        }
+        unsafe { slice::from_raw_parts_mut(slice.as_ptr() as *mut T, len) as *mut _ }
     }
 
     pub fn into_vec(self) -> Vec<T> {
