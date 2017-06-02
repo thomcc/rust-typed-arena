@@ -17,11 +17,23 @@
 // 2) add and stabilize placement new.
 // 3) use an iterator. This may add far too much unsafe code.
 
-use std::cell::RefCell;
-use std::cmp;
-use std::iter;
-use std::mem;
-use std::slice;
+#![cfg_attr(not(any(feature = "std", test)), no_std)]
+#![cfg_attr(not(feature = "std"), feature(alloc))]
+
+#[cfg(not(feature = "std"))]
+extern crate alloc;
+
+#[cfg(any(feature = "std", test))]
+extern crate core;
+
+#[cfg(not(feature = "std"))]
+use alloc::Vec;
+
+use core::cell::RefCell;
+use core::cmp;
+use core::iter;
+use core::mem;
+use core::slice;
 
 #[cfg(test)]
 mod test;
@@ -51,7 +63,7 @@ impl<T> Arena<T> {
         Arena {
             chunks: RefCell::new(ChunkList {
                 current: Vec::with_capacity(n),
-                rest: vec![],
+                rest: Vec::new(),
             }),
         }
     }

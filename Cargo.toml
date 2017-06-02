@@ -6,9 +6,13 @@ license = "MIT"
 description = "The arena, a fast but limited type of allocator"
 documentation = "https://docs.rs/typed-arena"
 repository = "https://github.com/SimonSapin/rust-typed-arena"
-categories = ["memory-management"]
+categories = ["memory-management", "no-std"]
 
 [lib]
 name = "typed_arena"
 path = "src/lib.rs"
 doctest = false
+
+[features]
+default = ["std"]
+std = []
