@@ -171,3 +171,15 @@ fn dont_trust_the_iterator_size() {
     assert_eq!(arena.chunks.borrow().rest.len(), 1);
     assert_eq!(slice.len(), 1000);
 }
+
+#[test]
+fn arena_is_send() {
+    fn assert_is_send<T: Send>(_: T) {}
+
+    // If `T` is `Send`, ...
+    assert_is_send(42_u32);
+
+    // Then `Arena<T>` is also `Send`.
+    let arena: Arena<u32> = Arena::new();
+    assert_is_send(arena);
+}
