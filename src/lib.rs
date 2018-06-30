@@ -5,9 +5,10 @@
 //! They do not support deallocation of individual objects while the arena itself is still alive.
 //! The benefit of an arena is very fast allocation; just a vector push.
 //!
-//! This is an equivalent of
+//! This is an equivalent of the old
 //! [`arena::TypedArena`](https://doc.rust-lang.org/1.1.0/arena/struct.TypedArena.html)
-//! distributed with rustc, but is available of Rust beta/stable.
+//! type that was once distributed with nightly rustc but has since been
+//! removed.
 //!
 //! It is slightly less efficient, but simpler internally and uses much less unsafe code.
 //! It is based on a `Vec<Vec<T>>` instead of raw pointers and manual drops.
