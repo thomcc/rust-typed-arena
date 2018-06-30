@@ -6,7 +6,7 @@
 //! The benefit of an arena is very fast allocation; just a vector push.
 //!
 //! This is an equivalent of
-//! [`arena::TypedArena`](http://doc.rust-lang.org/arena/struct.TypedArena.html)
+//! [`arena::TypedArena`](https://doc.rust-lang.org/1.1.0/arena/struct.TypedArena.html)
 //! distributed with rustc, but is available of Rust beta/stable.
 //!
 //! It is slightly less efficient, but simpler internally and uses much less unsafe code.
