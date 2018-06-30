@@ -5,18 +5,58 @@
 //! They do not support deallocation of individual objects while the arena itself is still alive.
 //! The benefit of an arena is very fast allocation; just a vector push.
 //!
-//! This is an equivalent of
-//! [`arena::TypedArena`](http://doc.rust-lang.org/arena/struct.TypedArena.html)
-//! distributed with rustc, but is available of Rust beta/stable.
+//! This is an equivalent of the old
+//! [`arena::TypedArena`](https://doc.rust-lang.org/1.1.0/arena/struct.TypedArena.html)
+//! type that was once distributed with nightly rustc but has since been
+//! removed.
 //!
 //! It is slightly less efficient, but simpler internally and uses much less unsafe code.
 //! It is based on a `Vec<Vec<T>>` instead of raw pointers and manual drops.
+//!
+//! ## Example
+//!
+//! ```
+//! use typed_arena::Arena;
+//!
+//! struct Monster {
+//!     level: u32,
+//! }
+//!
+//! let monsters = Arena::new();
+//!
+//! let vegeta = monsters.alloc(Monster { level: 9001 });
+//! assert!(vegeta.level > 9000);
+//! ```
+//!
+//! ## Safe Cycles
+//!
+//! All allocated objects get the same lifetime, so you can safely create cycles
+//! between them. This can be useful for certain data structures, such as graphs
+//! and trees with parent pointers.
+//!
+//! ```
+//! use std::cell::Cell;
+//! use typed_arena::Arena;
+//!
+//! struct CycleParticipant<'a> {
+//!     other: Cell<Option<&'a CycleParticipant<'a>>>,
+//! }
+//!
+//! let arena = Arena::new();
+//!
+//! let a = arena.alloc(CycleParticipant { other: Cell::new(None) });
+//! let b = arena.alloc(CycleParticipant { other: Cell::new(None) });
+//!
+//! a.other.set(Some(b));
+//! b.other.set(Some(a));
+//! ```
 
 // Potential optimizations:
 // 1) add and stabilize a method for in-place reallocation of vecs.
 // 2) add and stabilize placement new.
 // 3) use an iterator. This may add far too much unsafe code.
 
+#![deny(missing_docs)]
 #![cfg_attr(not(any(feature = "std", test)), no_std)]
 #![cfg_attr(not(feature = "std"), feature(alloc))]
 
@@ -43,6 +83,22 @@ const INITIAL_SIZE: usize = 1024;
 // Minimum capacity. Must be larger than 0.
 const MIN_CAPACITY: usize = 1;
 
+/// An arena of objects of type `T`.
+///
+/// ## Example
+///
+/// ```
+/// use typed_arena::Arena;
+///
+/// struct Monster {
+///     level: u32,
+/// }
+///
+/// let monsters = Arena::new();
+///
+/// let vegeta = monsters.alloc(Monster { level: 9001 });
+/// assert!(vegeta.level > 9000);
+/// ```
 pub struct Arena<T> {
     chunks: RefCell<ChunkList<T>>,
 }
@@ -53,11 +109,31 @@ struct ChunkList<T> {
 }
 
 impl<T> Arena<T> {
+    /// Construct a new arena.
+    ///
+    /// ## Example
+    ///
+    /// ```
+    /// use typed_arena::Arena;
+    ///
+    /// let arena = Arena::new();
+    /// # arena.alloc(1);
+    /// ```
     pub fn new() -> Arena<T> {
         let size = cmp::max(1, mem::size_of::<T>());
         Arena::with_capacity(INITIAL_SIZE / size)
     }
 
+    /// Construct a new arena with capacity for `n` values pre-allocated.
+    ///
+    /// ## Example
+    ///
+    /// ```
+    /// use typed_arena::Arena;
+    ///
+    /// let arena = Arena::with_capacity(1337);
+    /// # arena.alloc(1);
+    /// ```
     pub fn with_capacity(n: usize) -> Arena<T> {
         let n = cmp::max(MIN_CAPACITY, n);
         Arena {
@@ -70,12 +146,32 @@ impl<T> Arena<T> {
 
     /// Allocates a value in the arena, and returns a mutable reference
     /// to that value.
+    ///
+    /// ## Example
+    ///
+    /// ```
+    /// use typed_arena::Arena;
+    ///
+    /// let arena = Arena::new();
+    /// let x = arena.alloc(42);
+    /// assert_eq!(*x, 42);
+    /// ```
     pub fn alloc(&self, value: T) -> &mut T {
         &mut self.alloc_extend(iter::once(value))[0]
     }
 
     /// Uses the contents of an iterator to allocate values in the arena.
     /// Returns a mutable slice that contains these values.
+    ///
+    /// ## Example
+    ///
+    /// ```
+    /// use typed_arena::Arena;
+    ///
+    /// let arena = Arena::new();
+    /// let abc = arena.alloc_extend("abcdefg".chars().take(3));
+    /// assert_eq!(abc, ['a', 'b', 'c']);
+    /// ```
     pub fn alloc_extend<I>(&self, iterable: I) -> &mut [T]
         where I: IntoIterator<Item = T>
     {
@@ -128,6 +224,24 @@ impl<T> Arena<T> {
     }
 
     /// Allocates space for a given number of values, but doesn't initialize it.
+    ///
+    /// ## Unsafety and Undefined Behavior
+    ///
+    /// The same caveats that apply to
+    /// [`std::mem::uninitialized`](https://doc.rust-lang.org/nightly/std/mem/fn.uninitialized.html)
+    /// apply here:
+    ///
+    /// > **This is incredibly dangerous and should not be done lightly. Deeply
+    /// consider initializing your memory with a default value instead.**
+    ///
+    /// In particular, it is easy to trigger undefined behavior by allocating
+    /// uninitialized values, failing to properly initialize them, and then the
+    /// `Arena` will attempt to drop them when it is dropped. Initializing an
+    /// uninitialized value is trickier than it might seem: a normal assignment
+    /// to a field will attempt to drop the old, uninitialized value, which
+    /// almost certainly also triggers undefined behavior. You must also
+    /// consider all the places where your code might "unexpectedly" drop values
+    /// earlier than it "should" because of unwinding during panics.
     pub unsafe fn alloc_uninitialized(&self, num: usize) -> *mut [T] {
         let mut chunks = self.chunks.borrow_mut();
 
@@ -143,6 +257,11 @@ impl<T> Arena<T> {
     }
 
     /// Returns unused space.
+    ///
+    /// *This unused space is still not considered "allocated".* Therefore, it
+    /// won't be dropped unless there are further calls to `alloc`,
+    /// `alloc_uninitialized`, or `alloc_extend` which is why the method is
+    /// safe.
     pub fn uninitialized_array(&self) -> *mut [T] {
         let chunks = self.chunks.borrow();
         let len = chunks.current.capacity() - chunks.current.len();
@@ -151,6 +270,26 @@ impl<T> Arena<T> {
         unsafe { slice::from_raw_parts_mut(slice.as_ptr() as *mut T, len) as *mut _ }
     }
 
+    /// Convert this `Arena` into a `Vec<T>`.
+    ///
+    /// Items in the resulting `Vec<T>` appear in the order that they were
+    /// allocated in.
+    ///
+    /// ## Example
+    ///
+    /// ```
+    /// use typed_arena::Arena;
+    ///
+    /// let arena = Arena::new();
+    ///
+    /// arena.alloc("a");
+    /// arena.alloc("b");
+    /// arena.alloc("c");
+    ///
+    /// let easy_as_123 = arena.into_vec();
+    ///
+    /// assert_eq!(easy_as_123, vec!["a", "b", "c"]);
+    /// ```
     pub fn into_vec(self) -> Vec<T> {
         let mut chunks = self.chunks.into_inner();
         // keep order of allocation in the resulting Vec

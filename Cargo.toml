@@ -1,6 +1,6 @@
 [package]
 name = "typed-arena"
-version = "1.4.0"
+version = "1.4.1"
 authors = ["Simon Sapin <simon.sapin@exyr.org>"]
 license = "MIT"
 description = "The arena, a fast but limited type of allocator"
@@ -11,7 +11,6 @@ categories = ["memory-management", "no-std"]
 [lib]
 name = "typed_arena"
 path = "src/lib.rs"
-doctest = false
 
 [features]
 default = ["std"]
