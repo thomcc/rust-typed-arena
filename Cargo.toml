@@ -6,7 +6,7 @@ license = "MIT"
 description = "The arena, a fast but limited type of allocator"
 documentation = "https://docs.rs/typed-arena"
 repository = "https://github.com/SimonSapin/rust-typed-arena"
-categories = ["memory-management", "no-std"]
+categories = ["memory-management", "no-std", "arena"]
 
 [lib]
 name = "typed_arena"
