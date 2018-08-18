@@ -156,7 +156,24 @@ impl<T> Arena<T> {
     /// let x = arena.alloc(42);
     /// assert_eq!(*x, 42);
     /// ```
+    #[inline]
     pub fn alloc(&self, value: T) -> &mut T {
+        self.alloc_fast_path(value)
+            .unwrap_or_else(|value| self.alloc_slow_path(value))
+    }
+
+    #[inline]
+    fn alloc_fast_path(&self, value: T) -> Result<&mut T, T> {
+        let mut chunks = self.chunks.borrow_mut();
+        if chunks.current.len() < chunks.current.capacity() {
+            chunks.current.push(value);
+            Ok(unsafe { mem::transmute(chunks.current.last_mut().unwrap()) })
+        } else {
+            Err(value)
+        }
+    }
+
+    fn alloc_slow_path(&self, value: T) -> &mut T {
         &mut self.alloc_extend(iter::once(value))[0]
     }
 
@@ -173,7 +190,8 @@ impl<T> Arena<T> {
     /// assert_eq!(abc, ['a', 'b', 'c']);
     /// ```
     pub fn alloc_extend<I>(&self, iterable: I) -> &mut [T]
-        where I: IntoIterator<Item = T>
+    where
+        I: IntoIterator<Item = T>,
     {
         let mut iter = iterable.into_iter();
 
@@ -197,7 +215,9 @@ impl<T> Arena<T> {
                     let previous_chunk = chunks.rest.last_mut().unwrap();
                     let previous_chunk_len = previous_chunk.len();
                     // Move any elements we put into the previous chunk into this new chunk
-                    chunks.current.extend(previous_chunk.drain(previous_chunk_len - i..));
+                    chunks
+                        .current
+                        .extend(previous_chunk.drain(previous_chunk_len - i..));
                     chunks.current.push(elem);
                     // And the remaining elements in the iterator
                     chunks.current.extend(iter);
@@ -293,7 +313,10 @@ impl<T> Arena<T> {
     pub fn into_vec(self) -> Vec<T> {
         let mut chunks = self.chunks.into_inner();
         // keep order of allocation in the resulting Vec
-        let n = chunks.rest.iter().fold(chunks.current.len(), |a, v| a + v.len());
+        let n = chunks
+            .rest
+            .iter()
+            .fold(chunks.current.len(), |a, v| a + v.len());
         let mut result = Vec::with_capacity(n);
         for mut vec in chunks.rest {
             result.append(&mut vec);
@@ -307,8 +330,14 @@ impl<T> ChunkList<T> {
     #[inline(never)]
     #[cold]
     fn reserve(&mut self, additional: usize) {
-        let double_cap = self.current.capacity().checked_mul(2).expect("capacity overflow");
-        let required_cap = additional.checked_next_power_of_two().expect("capacity overflow");
+        let double_cap = self
+            .current
+            .capacity()
+            .checked_mul(2)
+            .expect("capacity overflow");
+        let required_cap = additional
+            .checked_next_power_of_two()
+            .expect("capacity overflow");
         let new_capacity = cmp::max(double_cap, required_cap);
         let chunk = mem::replace(&mut self.current, Vec::with_capacity(new_capacity));
         self.rest.push(chunk);
