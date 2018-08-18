@@ -156,7 +156,24 @@ impl<T> Arena<T> {
     /// let x = arena.alloc(42);
     /// assert_eq!(*x, 42);
     /// ```
+    #[inline]
     pub fn alloc(&self, value: T) -> &mut T {
+        self.alloc_fast_path(value)
+            .unwrap_or_else(|value| self.alloc_slow_path(value))
+    }
+
+    #[inline]
+    fn alloc_fast_path(&self, value: T) -> Result<&mut T, T> {
+        let mut chunks = self.chunks.borrow_mut();
+        if chunks.current.len() < chunks.current.capacity() {
+            chunks.current.push(value);
+            Ok(unsafe { mem::transmute(chunks.current.last_mut().unwrap()) })
+        } else {
+            Err(value)
+        }
+    }
+
+    fn alloc_slow_path(&self, value: T) -> &mut T {
         &mut self.alloc_extend(iter::once(value))[0]
     }
 
