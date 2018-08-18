@@ -16,3 +16,14 @@ path = "src/lib.rs"
 [features]
 default = ["std"]
 std = []
+
+[dev-dependencies]
+criterion = "0.2.4"
+
+[[bench]]
+name = "benches"
+path = "benches/benches.rs"
+harness = false
+
+[profile.bench]
+debug = true
