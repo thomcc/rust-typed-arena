@@ -67,7 +67,7 @@ extern crate alloc;
 extern crate core;
 
 #[cfg(not(feature = "std"))]
-use alloc::Vec;
+use alloc::vec::Vec;
 
 use core::cell::RefCell;
 use core::cmp;
