@@ -1,7 +1,7 @@
+use super::*;
 use std::cell::Cell;
 use std::mem;
 use std::ptr;
-use super::*;
 
 struct DropTracker<'a>(&'a Cell<u32>);
 impl<'a> Drop for DropTracker<'a> {
@@ -62,7 +62,7 @@ fn arena_as_intended() {
 
 #[test]
 fn ensure_into_vec_maintains_order_of_allocation() {
-    let arena = Arena::with_capacity(1);  // force multiple inner vecs
+    let arena = Arena::with_capacity(1); // force multiple inner vecs
     for &s in &["t", "e", "s", "t"] {
         arena.alloc(String::from(s));
     }
@@ -82,8 +82,8 @@ fn test_zero_cap() {
 #[test]
 fn test_alloc_extend() {
     let arena = Arena::with_capacity(2);
-    for i in 0 .. 15 {
-        let slice = arena.alloc_extend(0 .. i);
+    for i in 0..15 {
+        let slice = arena.alloc_extend(0..i);
         for (j, &elem) in slice.iter().enumerate() {
             assert_eq!(j, elem);
         }
@@ -96,7 +96,7 @@ fn test_alloc_uninitialized() {
     let drop_counter = Cell::new(0);
     unsafe {
         let arena: Arena<Node> = Arena::with_capacity(4);
-        for i in 0 .. LIMIT {
+        for i in 0..LIMIT {
             let slice = arena.alloc_uninitialized(i);
             for (j, elem) in (&mut *slice).iter_mut().enumerate() {
                 ptr::write(elem, Node(None, j as u32, DropTracker(&drop_counter)));
@@ -104,7 +104,7 @@ fn test_alloc_uninitialized() {
             assert_eq!(drop_counter.get(), 0);
         }
     }
-    assert_eq!(drop_counter.get(), (0 .. LIMIT).fold(0, |a, e| a + e) as u32);
+    assert_eq!(drop_counter.get(), (0..LIMIT).fold(0, |a, e| a + e) as u32);
 }
 
 #[test]
@@ -112,14 +112,10 @@ fn test_alloc_extend_with_drop_counter() {
     let drop_counter = Cell::new(0);
     {
         let arena = Arena::with_capacity(2);
-        let iter = (0 .. 100).map(|j| {
-            Node(None, j as u32, DropTracker(&drop_counter))
-        });
+        let iter = (0..100).map(|j| Node(None, j as u32, DropTracker(&drop_counter)));
         let older_ref = Some(&arena.alloc_extend(iter)[0]);
         assert_eq!(drop_counter.get(), 0);
-        let iter = (0 .. 100).map(|j| {
-            Node(older_ref, j as u32, DropTracker(&drop_counter))
-        });
+        let iter = (0..100).map(|j| Node(older_ref, j as u32, DropTracker(&drop_counter)));
         arena.alloc_extend(iter);
         assert_eq!(drop_counter.get(), 0);
     }
@@ -130,9 +126,9 @@ fn test_alloc_extend_with_drop_counter() {
 fn test_uninitialized_array() {
     let arena = Arena::with_capacity(2);
     let uninit = arena.uninitialized_array();
-    arena.alloc_extend(0 .. 2);
+    arena.alloc_extend(0..2);
     unsafe {
-        for (&a, b) in (&*uninit).iter().zip(0 .. 2) {
+        for (&a, b) in (&*uninit).iter().zip(0..2) {
             assert_eq!(a, b);
         }
         assert!((&*arena.uninitialized_array()).as_ptr() != (&*uninit).as_ptr());
@@ -142,14 +138,14 @@ fn test_uninitialized_array() {
     }
 }
 
-
 #[test]
 fn dont_trust_the_iterator_size() {
     use std::iter::repeat;
 
     struct WrongSizeIter<I>(I);
     impl<I> Iterator for WrongSizeIter<I>
-        where I: Iterator
+    where
+        I: Iterator,
     {
         type Item = I::Item;
 
