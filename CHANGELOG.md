@@ -4,7 +4,7 @@ Released YYYY/MM/DD.
 
 ### Added
 
-* TODO (or remove section if none)
+* Implement `Default` for `Arena<T>`.
 
 ### Changed
 
