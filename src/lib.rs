@@ -326,6 +326,12 @@ impl<T> Arena<T> {
     }
 }
 
+impl<T> Default for Arena<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T> ChunkList<T> {
     #[inline(never)]
     #[cold]
