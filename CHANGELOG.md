@@ -28,6 +28,22 @@ Released YYYY/MM/DD.
 
 --------------------------------------------------------------------------------
 
+## 1.5.0
+
+Released 2019/08/02.
+
+### Added
+
+* `Arena` now implements `Default`
+
+### Fixed
+
+* Introduced an internal fast path for allocation, improving performance.
+* Tests now run cleanly on Miri. There was previously a technicality where
+  the stacked borrow rules were not being followed.
+
+--------------------------------------------------------------------------------
+
 ## 1.4.1
 
 Released 2018/06/29.
