@@ -1,9 +1,17 @@
 sudo: false
 language: rust
-rust:
-  - nightly
-  - beta
-  - stable
+
+matrix:
+    include:
+    - rust: stable
+    - rust: beta
+    - rust: nightly
+
+    - rust: nightly
+      os: linux
+      env: DESCRIPTION="Miri"
+      script:
+        - sh ci/miri.sh
 
 script:
   - cargo test
