@@ -165,9 +165,13 @@ impl<T> Arena<T> {
     #[inline]
     fn alloc_fast_path(&self, value: T) -> Result<&mut T, T> {
         let mut chunks = self.chunks.borrow_mut();
-        if chunks.current.len() < chunks.current.capacity() {
+        let len = chunks.current.len();
+        if len < chunks.current.capacity() {
             chunks.current.push(value);
-            Ok(unsafe { mem::transmute(chunks.current.last_mut().unwrap()) })
+            // Avoid going through `Vec::deref_mut`, which overlaps
+            // other references we have already handed out!
+            debug_assert!(len < chunks.current.len()); // bounds check
+            Ok(unsafe { &mut *chunks.current.as_mut_ptr().add(len) })
         } else {
             Err(value)
         }
