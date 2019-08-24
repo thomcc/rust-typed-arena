@@ -248,6 +248,25 @@ fn assert_size_hint<T>(arena_len: usize, iter: IterMut<'_, T>) {
 }
 
 #[test]
+fn size_hint() {
+    #[derive(Debug, PartialEq, Eq)]
+    struct NonCopy(usize);
+
+    const MAX: usize = 32;
+    const CAP: usize = 0;
+
+    for cap in CAP..(CAP + 16/* check some non-power-of-two capacities */) {
+        let mut arena = Arena::with_capacity(cap);
+        for i in 1..MAX {
+            arena.alloc(NonCopy(i));
+            let iter = arena.iter_mut();
+            assert_size_hint(i, iter);
+        }
+    }
+}
+
+#[test]
+#[cfg(not(miri))]
 fn size_hint_low_initial_capacities() {
     #[derive(Debug, PartialEq, Eq)]
     struct NonCopy(usize);
@@ -266,6 +285,7 @@ fn size_hint_low_initial_capacities() {
 }
 
 #[test]
+#[cfg(not(miri))]
 fn size_hint_high_initial_capacities() {
     #[derive(Debug, PartialEq, Eq)]
     struct NonCopy(usize);
@@ -284,6 +304,7 @@ fn size_hint_high_initial_capacities() {
 }
 
 #[test]
+#[cfg(not(miri))]
 fn size_hint_many_items() {
     #[derive(Debug, PartialEq, Eq)]
     struct NonCopy(usize);
