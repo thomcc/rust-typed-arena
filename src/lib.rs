@@ -328,6 +328,62 @@ impl<T> Arena<T> {
         result.append(&mut chunks.current);
         result
     }
+
+    /// Returns an iterator that allows modifying each value.
+    ///
+    /// Items are yielded in the order that they were allocated.
+    ///
+    /// ## Example
+    ///
+    /// ```
+    /// use typed_arena::Arena;
+    ///
+    /// #[derive(Debug, PartialEq, Eq)]
+    /// struct Point { x: i32, y: i32 };
+    ///
+    /// let mut arena = Arena::new();
+    ///
+    /// arena.alloc(Point { x: 0, y: 0 });
+    /// arena.alloc(Point { x: 1, y: 1 });
+    ///
+    /// for point in arena.iter_mut() {
+    ///     point.x += 10;
+    /// }
+    ///
+    /// let points = arena.into_vec();
+    ///
+    /// assert_eq!(points, vec![Point { x: 10, y: 0 }, Point { x: 11, y: 1 }]);
+    ///
+    /// ```
+    ///
+    /// ## Immutable Iteration
+    ///
+    /// Note that there is no corresponding `iter` method. Access to the arena's contents
+    /// requries mutable access to the arena itself.
+    ///
+    /// ```compile_fail
+    /// use typed_arena::Arena;
+    ///
+    /// let mut arena = Arena::new();
+    /// let x = arena.alloc(1);
+    ///
+    /// // borrow error!
+    /// for i in arena.iter_mut() {
+    ///     println!("i: {}", i);
+    /// }
+    ///
+    /// // borrow error!
+    /// *x = 2;
+    /// ```
+    pub fn iter_mut(&mut self) -> IterMut<'_, T> {
+        IterMut {
+            chunks: self.chunks.get_mut(),
+            position: ChunkListPosition::Rest {
+                index: 0,
+                inner_index: 0,
+            },
+        }
+    }
 }
 
 impl<T> Default for Arena<T> {
@@ -351,5 +407,89 @@ impl<T> ChunkList<T> {
         let new_capacity = cmp::max(double_cap, required_cap);
         let chunk = mem::replace(&mut self.current, Vec::with_capacity(new_capacity));
         self.rest.push(chunk);
+    }
+}
+
+enum ChunkListPosition {
+    Rest { index: usize, inner_index: usize },
+    Current { index: usize },
+}
+
+/// Mutable arena iterator.
+///
+/// This struct is created by the [`iter_mut`](struct.Arena.html#method.iter_mut) method on [Arenas](struct.Arena.html).
+pub struct IterMut<'a, T: 'a> {
+    chunks: &'a mut ChunkList<T>,
+    position: ChunkListPosition,
+}
+
+impl<'a, T> Iterator for IterMut<'a, T> {
+    type Item = &'a mut T;
+    fn next(&mut self) -> Option<&'a mut T> {
+        match self.position {
+            ChunkListPosition::Rest { index, inner_index } => {
+                if let Some(chunk) = self.chunks.rest.get_mut(index) {
+                    self.position = ChunkListPosition::Rest {
+                        index,
+                        inner_index: inner_index + 1,
+                    };
+                    // Extend the lifetime of the individual element to that of the arena.
+                    // This is OK because we borrow the arena mutably to prevent new allocations
+                    // and we take care here to never move items inside the arena while the
+                    // iterator is alive.
+                    let maybe = chunk
+                        .get_mut(inner_index)
+                        .map(|v| unsafe { mem::transmute(v) });
+                    if let Some(val) = maybe {
+                        Some(val)
+                    } else {
+                        self.position = ChunkListPosition::Rest {
+                            index: index + 1,
+                            inner_index: 0,
+                        };
+                        self.next()
+                    }
+                } else {
+                    self.position = ChunkListPosition::Current { index: 0 };
+                    self.next()
+                }
+            }
+            ChunkListPosition::Current { index } => {
+                // Extend the lifetime of the individual element to that of the arena.
+                // See note above regarding lifetime and safety.
+                let maybe = self
+                    .chunks
+                    .current
+                    .get_mut(index)
+                    .map(|v| unsafe { mem::transmute(v) });
+                if let Some(val) = maybe {
+                    self.position = ChunkListPosition::Current { index: index + 1 };
+                    Some(val)
+                } else {
+                    None
+                }
+            }
+        }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let current_len = self.chunks.current.len();
+        let current_cap = self.chunks.current.capacity();
+        if self.chunks.rest.is_empty() {
+            (current_len, Some(current_len))
+        } else {
+            let rest_len = self.chunks.rest.len();
+            let last_chunk_len = self
+                .chunks
+                .rest
+                .last()
+                .map(|chunk| chunk.len())
+                .unwrap_or(0);
+
+            let min = current_len + last_chunk_len;
+            let max = min + (rest_len * current_cap / rest_len);
+
+            (min, Some(max))
+        }
     }
 }
