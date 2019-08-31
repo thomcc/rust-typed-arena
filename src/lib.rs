@@ -375,13 +375,26 @@ impl<T> Arena<T> {
     /// // borrow error!
     /// *x = 2;
     /// ```
-    pub fn iter_mut(&mut self) -> IterMut<'_, T> {
+    #[inline]
+    pub fn iter_mut(&mut self) -> IterMut<T> {
+        let chunks = self.chunks.get_mut();
+        let position = if chunks.rest.len() > 0 {
+            let index = 0;
+            let inner_iter = chunks.rest[index].iter_mut();
+            // Extend the lifetime of the individual elements to that of the arena.
+            // This is OK because we borrow the arena mutably to prevent new allocations
+            // and we take care here to never move items inside the arena while the
+            // iterator is alive.
+            let inner_iter = unsafe { mem::transmute(inner_iter) };
+            IterMutState::ChunkListRest { index, inner_iter }
+        } else {
+            // Extend the lifetime of the individual elements to that of the arena.
+            let iter = unsafe { mem::transmute(chunks.current.iter_mut()) };
+            IterMutState::ChunkListCurrent { iter }
+        };
         IterMut {
-            chunks: self.chunks.get_mut(),
-            position: ChunkListPosition::Rest {
-                index: 0,
-                inner_index: 0,
-            },
+            chunks,
+            state: position,
         }
     }
 }
@@ -410,9 +423,14 @@ impl<T> ChunkList<T> {
     }
 }
 
-enum ChunkListPosition {
-    Rest { index: usize, inner_index: usize },
-    Current { index: usize },
+enum IterMutState<'a, T> {
+    ChunkListRest {
+        index: usize,
+        inner_iter: slice::IterMut<'a, T>,
+    },
+    ChunkListCurrent {
+        iter: slice::IterMut<'a, T>,
+    },
 }
 
 /// Mutable arena iterator.
@@ -420,55 +438,38 @@ enum ChunkListPosition {
 /// This struct is created by the [`iter_mut`](struct.Arena.html#method.iter_mut) method on [Arenas](struct.Arena.html).
 pub struct IterMut<'a, T: 'a> {
     chunks: &'a mut ChunkList<T>,
-    position: ChunkListPosition,
+    state: IterMutState<'a, T>,
 }
 
 impl<'a, T> Iterator for IterMut<'a, T> {
     type Item = &'a mut T;
     fn next(&mut self) -> Option<&'a mut T> {
-        match self.position {
-            ChunkListPosition::Rest { index, inner_index } => {
-                if let Some(chunk) = self.chunks.rest.get_mut(index) {
-                    self.position = ChunkListPosition::Rest {
-                        index,
-                        inner_index: inner_index + 1,
-                    };
-                    // Extend the lifetime of the individual element to that of the arena.
-                    // This is OK because we borrow the arena mutably to prevent new allocations
-                    // and we take care here to never move items inside the arena while the
-                    // iterator is alive.
-                    let maybe = chunk
-                        .get_mut(inner_index)
-                        .map(|v| unsafe { mem::transmute(v) });
-                    if let Some(val) = maybe {
-                        Some(val)
-                    } else {
-                        self.position = ChunkListPosition::Rest {
-                            index: index + 1,
-                            inner_index: 0,
-                        };
-                        self.next()
+        match self.state {
+            IterMutState::ChunkListRest {
+                mut index,
+                ref mut inner_iter,
+            } => {
+                match inner_iter.next() {
+                    Some(item) => Some(item),
+                    None => {
+                        index += 1;
+                        if index < self.chunks.rest.len() {
+                            let inner_iter = self.chunks.rest[index].iter_mut();
+                            // Extend the lifetime of the individual elements to that of the arena.
+                            let inner_iter = unsafe { mem::transmute(inner_iter) };
+                            self.state = IterMutState::ChunkListRest { index, inner_iter };
+                            self.next()
+                        } else {
+                            let iter = self.chunks.current.iter_mut();
+                            // Extend the lifetime of the individual elements to that of the arena.
+                            let iter = unsafe { mem::transmute(iter) };
+                            self.state = IterMutState::ChunkListCurrent { iter };
+                            self.next()
+                        }
                     }
-                } else {
-                    self.position = ChunkListPosition::Current { index: 0 };
-                    self.next()
                 }
             }
-            ChunkListPosition::Current { index } => {
-                // Extend the lifetime of the individual element to that of the arena.
-                // See note above regarding lifetime and safety.
-                let maybe = self
-                    .chunks
-                    .current
-                    .get_mut(index)
-                    .map(|v| unsafe { mem::transmute(v) });
-                if let Some(val) = maybe {
-                    self.position = ChunkListPosition::Current { index: index + 1 };
-                    Some(val)
-                } else {
-                    None
-                }
-            }
+            IterMutState::ChunkListCurrent { ref mut iter } => iter.next(),
         }
     }
 
