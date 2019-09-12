@@ -444,32 +444,34 @@ pub struct IterMut<'a, T: 'a> {
 impl<'a, T> Iterator for IterMut<'a, T> {
     type Item = &'a mut T;
     fn next(&mut self) -> Option<&'a mut T> {
-        match self.state {
-            IterMutState::ChunkListRest {
-                mut index,
-                ref mut inner_iter,
-            } => {
-                match inner_iter.next() {
-                    Some(item) => Some(item),
-                    None => {
-                        index += 1;
-                        if index < self.chunks.rest.len() {
-                            let inner_iter = self.chunks.rest[index].iter_mut();
-                            // Extend the lifetime of the individual elements to that of the arena.
-                            let inner_iter = unsafe { mem::transmute(inner_iter) };
-                            self.state = IterMutState::ChunkListRest { index, inner_iter };
-                            self.next()
-                        } else {
-                            let iter = self.chunks.current.iter_mut();
-                            // Extend the lifetime of the individual elements to that of the arena.
-                            let iter = unsafe { mem::transmute(iter) };
-                            self.state = IterMutState::ChunkListCurrent { iter };
-                            self.next()
+        loop {
+            match self.state {
+                IterMutState::ChunkListRest {
+                    mut index,
+                    ref mut inner_iter,
+                } => {
+                    match inner_iter.next() {
+                        Some(item) => return Some(item),
+                        None => {
+                            index += 1;
+                            if index < self.chunks.rest.len() {
+                                let inner_iter = self.chunks.rest[index].iter_mut();
+                                // Extend the lifetime of the individual elements to that of the arena.
+                                let inner_iter = unsafe { mem::transmute(inner_iter) };
+                                self.state = IterMutState::ChunkListRest { index, inner_iter };
+                                continue;
+                            } else {
+                                let iter = self.chunks.current.iter_mut();
+                                // Extend the lifetime of the individual elements to that of the arena.
+                                let iter = unsafe { mem::transmute(iter) };
+                                self.state = IterMutState::ChunkListCurrent { iter };
+                                continue;
+                            }
                         }
                     }
                 }
+                IterMutState::ChunkListCurrent { ref mut iter } => return iter.next(),
             }
-            IterMutState::ChunkListCurrent { ref mut iter } => iter.next(),
         }
     }
 

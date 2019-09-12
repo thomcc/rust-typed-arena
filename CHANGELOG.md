@@ -4,7 +4,7 @@ Released YYYY/MM/DD.
 
 ### Added
 
-* Implement `Default` for `Arena<T>`.
+* TODO (or remove section if none)
 
 ### Changed
 
@@ -25,6 +25,18 @@ Released YYYY/MM/DD.
 ### Security
 
 * TODO (or remove section if none)
+
+--------------------------------------------------------------------------------
+
+## 1.6.0
+
+Released 2019/09/09.
+
+### Added
+
+* Added the `Arena::iter_mut` method for mutably iterating over an arena's
+  contents. [See #29 for
+  details.](https://github.com/SimonSapin/rust-typed-arena/pull/29)
 
 --------------------------------------------------------------------------------
 

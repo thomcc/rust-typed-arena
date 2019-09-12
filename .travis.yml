@@ -2,14 +2,15 @@ sudo: false
 language: rust
 
 matrix:
-    include:
+  allow_failures:
+    - name: "Miri"
+  include:
     - rust: stable
     - rust: beta
     - rust: nightly
-
     - rust: nightly
       os: linux
-      env: DESCRIPTION="Miri"
+      name: "Miri"
       script:
         - sh ci/miri.sh
 

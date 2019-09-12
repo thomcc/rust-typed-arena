@@ -4,6 +4,7 @@ MIRI_NIGHTLY=nightly-$(curl -s https://rust-lang.github.io/rustup-components-his
 echo "Installing latest nightly with Miri: $MIRI_NIGHTLY"
 rustup default "$MIRI_NIGHTLY"
 
+cargo clean
 rustup component add miri
 cargo miri setup
 
