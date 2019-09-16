@@ -2,8 +2,6 @@ sudo: false
 language: rust
 
 matrix:
-  allow_failures:
-    - name: "Miri"
   include:
     - rust: stable
     - rust: beta
