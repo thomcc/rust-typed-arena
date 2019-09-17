@@ -445,7 +445,7 @@ impl<'a, T> Iterator for IterMut<'a, T> {
     type Item = &'a mut T;
     fn next(&mut self) -> Option<&'a mut T> {
         loop {
-            match self.state {
+            self.state = match self.state {
                 IterMutState::ChunkListRest {
                     mut index,
                     ref mut inner_iter,
@@ -458,20 +458,18 @@ impl<'a, T> Iterator for IterMut<'a, T> {
                                 let inner_iter = self.chunks.rest[index].iter_mut();
                                 // Extend the lifetime of the individual elements to that of the arena.
                                 let inner_iter = unsafe { mem::transmute(inner_iter) };
-                                self.state = IterMutState::ChunkListRest { index, inner_iter };
-                                continue;
+                                IterMutState::ChunkListRest { index, inner_iter }
                             } else {
                                 let iter = self.chunks.current.iter_mut();
                                 // Extend the lifetime of the individual elements to that of the arena.
                                 let iter = unsafe { mem::transmute(iter) };
-                                self.state = IterMutState::ChunkListCurrent { iter };
-                                continue;
+                                IterMutState::ChunkListCurrent { iter }
                             }
                         }
                     }
                 }
                 IterMutState::ChunkListCurrent { ref mut iter } => return iter.next(),
-            }
+            };
         }
     }
 
