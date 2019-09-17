@@ -1,17 +1,15 @@
 //! The arena, a fast but limited type of allocator.
 //!
-//! Arenas are a type of allocator that destroy the objects within,
-//! all at once, once the arena itself is destroyed.
-//! They do not support deallocation of individual objects while the arena itself is still alive.
-//! The benefit of an arena is very fast allocation; just a vector push.
+//! **A fast (but limited) allocation arena for values of a single type.**
 //!
-//! This is an equivalent of the old
-//! [`arena::TypedArena`](https://doc.rust-lang.org/1.1.0/arena/struct.TypedArena.html)
-//! type that was once distributed with nightly rustc but has since been
-//! removed.
+//! Allocated objects are destroyed all at once, when the arena itself is
+//! destroyed. There is no deallocation of individual objects while the arena
+//! itself is still alive. The flipside is that allocation is fast: typically
+//! just a vector push.
 //!
-//! It is slightly less efficient, but simpler internally and uses much less unsafe code.
-//! It is based on a `Vec<Vec<T>>` instead of raw pointers and manual drops.
+//! There is also a method `into_vec()` to recover ownership of allocated
+//! objects when the arena is no longer required, instead of destroying
+//! everything.
 //!
 //! ## Example
 //!

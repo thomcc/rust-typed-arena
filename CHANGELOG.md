@@ -28,6 +28,18 @@ Released YYYY/MM/DD.
 
 --------------------------------------------------------------------------------
 
+## 1.6.1
+
+Released 2019/09/17.
+
+### Fixed
+
+* Now compiles on old stable Rust versions again, instead of just new stable
+  Rust versions. From here on out, we'll promise that 1.X will continue to
+  compile on rustc versions >= 1.32.
+
+--------------------------------------------------------------------------------
+
 ## 1.6.0
 
 Released 2019/09/09.

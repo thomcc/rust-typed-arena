@@ -1,13 +1,14 @@
 [package]
 name = "typed-arena"
-version = "1.6.0"
-authors = ["Simon Sapin <simon.sapin@exyr.org>"]
+version = "1.6.1"
+authors = ["Simon Sapin <simon.sapin@exyr.org>", "Nick Fitzgerald <fitzgen@gmail.com>"]
 license = "MIT"
 description = "The arena, a fast but limited type of allocator"
 documentation = "https://docs.rs/typed-arena"
 repository = "https://github.com/SimonSapin/rust-typed-arena"
 categories = ["memory-management", "no-std"]
 keywords = ["arena"]
+readme = "./README.md"
 
 [lib]
 name = "typed_arena"
