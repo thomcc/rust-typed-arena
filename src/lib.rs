@@ -201,7 +201,8 @@ impl<T> Arena<T> {
 
         let iter_min_len = iter.size_hint().0;
         let mut next_item_index;
-        if chunks.current.len() + iter_min_len > chunks.current.capacity() {
+        // if chunks.current.len() + iter_min_len > chunks.current.capacity() {
+        if iter_min_len > chunks.current.capacity() - chunks.current.len() {
             chunks.reserve(iter_min_len);
             chunks.current.extend(iter);
             next_item_index = 0;
@@ -267,7 +268,8 @@ impl<T> Arena<T> {
     pub unsafe fn alloc_uninitialized(&self, num: usize) -> *mut [T] {
         let mut chunks = self.chunks.borrow_mut();
 
-        if chunks.current.len() + num > chunks.current.capacity() {
+        // if chunks.current.len() + num > chunks.current.capacity() {
+        if num > chunks.current.capacity() - chunks.current.len() {
             chunks.reserve(num);
         }
 
