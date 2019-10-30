@@ -142,6 +142,32 @@ impl<T> Arena<T> {
         }
     }
 
+    /// Return the size of the arena
+    ///
+    /// This is useful for using the size of previous typed arenas to build new typed arenas with large enough spaces.
+    ///
+    /// ## Example
+    ///
+    /// ```
+    ///  use typed_arena::Arena;
+    /// 
+    ///  let arena = Arena::with_capacity(0);
+    ///  let a = arena.alloc(1);
+    ///  let b = arena.alloc(2);
+    /// 
+    ///  assert_eq!(arena.len(), 2);
+    /// ```
+    pub fn len(&self) -> usize {
+        let chunks = self.chunks.borrow();
+
+        let mut res = 0;
+        for vec in chunks.rest.iter() {
+            res += vec.len()
+        }
+
+        res + chunks.current.len()
+    }
+
     /// Allocates a value in the arena, and returns a mutable reference
     /// to that value.
     ///
@@ -201,7 +227,6 @@ impl<T> Arena<T> {
 
         let iter_min_len = iter.size_hint().0;
         let mut next_item_index;
-        // if chunks.current.len() + iter_min_len > chunks.current.capacity() {
         if iter_min_len > chunks.current.capacity() - chunks.current.len() {
             chunks.reserve(iter_min_len);
             chunks.current.extend(iter);
@@ -232,18 +257,14 @@ impl<T> Arena<T> {
                 i += 1;
             }
         }
-        let new_slice_ref = {
-            let new_slice_ref = &mut chunks.current[next_item_index..];
+        let new_slice_ref = &mut chunks.current[next_item_index..];
 
-            // Extend the lifetime from that of `chunks_borrow` to that of `self`.
-            // This is OK because we’re careful to never move items
-            // by never pushing to inner `Vec`s beyond their initial capacity.
-            // The returned reference is unique (`&mut`):
-            // the `Arena` never gives away references to existing items.
-            unsafe { mem::transmute::<&mut [T], &mut [T]>(new_slice_ref) }
-        };
-
-        new_slice_ref
+        // Extend the lifetime from that of `chunks_borrow` to that of `self`.
+        // This is OK because we’re careful to never move items
+        // by never pushing to inner `Vec`s beyond their initial capacity.
+        // The returned reference is unique (`&mut`):
+        // the `Arena` never gives away references to existing items.
+        unsafe { mem::transmute::<&mut [T], &mut [T]>(new_slice_ref) }
     }
 
     /// Allocates space for a given number of values, but doesn't initialize it.
@@ -268,7 +289,6 @@ impl<T> Arena<T> {
     pub unsafe fn alloc_uninitialized(&self, num: usize) -> *mut [T] {
         let mut chunks = self.chunks.borrow_mut();
 
-        // if chunks.current.len() + num > chunks.current.capacity() {
         if num > chunks.current.capacity() - chunks.current.len() {
             chunks.reserve(num);
         }
@@ -378,7 +398,7 @@ impl<T> Arena<T> {
     #[inline]
     pub fn iter_mut(&mut self) -> IterMut<T> {
         let chunks = self.chunks.get_mut();
-        let position = if chunks.rest.len() > 0 {
+        let position = if !chunks.rest.is_empty() {
             let index = 0;
             let inner_iter = chunks.rest[index].iter_mut();
             // Extend the lifetime of the individual elements to that of the arena.

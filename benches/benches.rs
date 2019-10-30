@@ -25,7 +25,8 @@ fn criterion_benchmark(c: &mut Criterion) {
             "allocate-small",
             |b, n| b.iter(|| allocate::<Small>(*n)),
             (1..5).map(|n| n * 1000).collect::<Vec<usize>>(),
-        ).throughput(|n| Throughput::Elements(*n as u32)),
+        )
+        .throughput(|n| Throughput::Elements(*n as u64)),
     );
 
     c.bench(
@@ -34,7 +35,8 @@ fn criterion_benchmark(c: &mut Criterion) {
             "allocate-big",
             |b, n| b.iter(|| allocate::<Big>(*n)),
             (1..5).map(|n| n * 1000).collect::<Vec<usize>>(),
-        ).throughput(|n| Throughput::Elements(*n as u32)),
+        )
+        .throughput(|n| Throughput::Elements(*n as u64)),
     );
 }
 

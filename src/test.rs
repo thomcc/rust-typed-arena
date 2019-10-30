@@ -36,6 +36,8 @@ fn arena_as_intended() {
         assert_eq!(node.0.unwrap().0.unwrap().0.unwrap().1, 1);
         assert!(node.0.unwrap().0.unwrap().0.unwrap().0.is_none());
 
+        assert_eq!(arena.len(), 4);
+
         mem::drop(node);
         assert_eq!(drop_counter.get(), 0);
 
@@ -77,6 +79,7 @@ fn test_zero_cap() {
     let b = arena.alloc(2);
     assert_eq!(*a, 1);
     assert_eq!(*b, 2);
+    assert_eq!(arena.len(), 2);
 }
 
 #[test]
