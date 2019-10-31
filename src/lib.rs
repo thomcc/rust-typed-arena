@@ -150,11 +150,11 @@ impl<T> Arena<T> {
     ///
     /// ```
     ///  use typed_arena::Arena;
-    /// 
+    ///
     ///  let arena = Arena::with_capacity(0);
     ///  let a = arena.alloc(1);
     ///  let b = arena.alloc(2);
-    /// 
+    ///
     ///  assert_eq!(arena.len(), 2);
     /// ```
     pub fn len(&self) -> usize {
@@ -227,6 +227,10 @@ impl<T> Arena<T> {
 
         let iter_min_len = iter.size_hint().0;
         let mut next_item_index;
+        debug_assert!(
+            chunks.current.capacity() >= chunks.current.len(),
+            "capacity is always greater than or equal to len, so we don't need to worry about underflow"
+        );
         if iter_min_len > chunks.current.capacity() - chunks.current.len() {
             chunks.reserve(iter_min_len);
             chunks.current.extend(iter);
@@ -289,6 +293,10 @@ impl<T> Arena<T> {
     pub unsafe fn alloc_uninitialized(&self, num: usize) -> *mut [T] {
         let mut chunks = self.chunks.borrow_mut();
 
+        debug_assert!(
+            chunks.current.capacity() >= chunks.current.len(),
+            "capacity is always greater than or equal to len, so we don't need to worry about underflow"
+        );
         if num > chunks.current.capacity() - chunks.current.len() {
             chunks.reserve(num);
         }
