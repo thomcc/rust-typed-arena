@@ -28,6 +28,20 @@ Released YYYY/MM/DD.
 
 --------------------------------------------------------------------------------
 
+## 1.7.0
+
+Released 2019/10/31. *Spooky!*
+
+### Added
+
+* Added a `len` method to count how many items are in an arena.
+
+### Fixed
+
+* Fixed some theoretical overflows.
+
+--------------------------------------------------------------------------------
+
 ## 1.6.1
 
 Released 2019/09/17.
