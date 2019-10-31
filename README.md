@@ -16,7 +16,7 @@ when the arena is no longer required, instead of destroying everything.
 
 ## Example
 
-```
+```rust
 use typed_arena::Arena;
 
 struct Monster {
@@ -35,7 +35,7 @@ All allocated objects get the same lifetime, so you can safely create cycles
 between them. This can be useful for certain data structures, such as graphs
 and trees with parent pointers.
 
-```
+```rust
 use std::cell::Cell;
 use typed_arena::Arena;
 
