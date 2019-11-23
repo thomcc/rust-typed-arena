@@ -72,6 +72,7 @@ use core::cmp;
 use core::iter;
 use core::mem;
 use core::slice;
+use core::str;
 
 #[cfg(test)]
 mod test;
@@ -424,6 +425,29 @@ impl<T> Arena<T> {
             chunks,
             state: position,
         }
+    }
+}
+
+impl Arena<u8> {
+    /// Allocates a string slice and returns a mutable reference to it.
+    ///
+    /// This is on `Arena<u8>`, because string slices use byte slices (`[u8]`) as their backing
+    /// storage.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use typed_arena::Arena;
+    ///
+    /// let arena: Arena<u8> = Arena::new();
+    /// let hello = arena.alloc_str("Hello world");
+    /// assert_eq!("Hello world", hello);
+    /// ```
+    #[inline]
+    pub fn alloc_str(&self, s: &str) -> &mut str {
+        let buffer = self.alloc_extend(s.bytes());
+        // Can't fail the utf8 validation, it already came in as utf8
+        unsafe { str::from_utf8_unchecked_mut(buffer) }
     }
 }
 

@@ -4,7 +4,7 @@ Released YYYY/MM/DD.
 
 ### Added
 
-* TODO (or remove section if none)
+* Added `alloc_str` to `Arena<u8>`, to be able to allocate string slices.
 
 ### Changed
 
