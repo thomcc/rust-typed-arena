@@ -1,6 +1,7 @@
 use super::*;
 use std::cell::Cell;
 use std::mem;
+use std::panic::{self, AssertUnwindSafe};
 use std::ptr;
 
 struct DropTracker<'a>(&'a Cell<u32>);
@@ -101,8 +102,8 @@ fn test_alloc_uninitialized() {
         let arena: Arena<Node> = Arena::with_capacity(4);
         for i in 0..LIMIT {
             let slice = arena.alloc_uninitialized(i);
-            for (j, elem) in (&mut *slice).iter_mut().enumerate() {
-                ptr::write(elem, Node(None, j as u32, DropTracker(&drop_counter)));
+            for (j, elem) in slice.iter_mut().enumerate() {
+                ptr::write(elem.as_mut_ptr(), Node(None, j as u32, DropTracker(&drop_counter)));
             }
             assert_eq!(drop_counter.get(), 0);
         }
@@ -125,6 +126,54 @@ fn test_alloc_extend_with_drop_counter() {
     assert_eq!(drop_counter.get(), 200);
 }
 
+/// Test with bools.
+///
+/// Bools, unlike integers, have invalid bit patterns. Therefore, ever having an uninitialized bool
+/// is insta-UB. Make sure miri doesn't find any such thing.
+#[test]
+fn test_alloc_uninitialized_bools() {
+    const LEN: usize = 20;
+    unsafe {
+        let arena: Arena<bool> = Arena::with_capacity(2);
+        let slice = arena.alloc_uninitialized(LEN);
+        for elem in slice.iter_mut() {
+            ptr::write(elem.as_mut_ptr(), true);
+        }
+        // Now it is fully initialized, we can safely transmute the slice.
+        let slice: &mut [bool] = mem::transmute(slice);
+        assert_eq!(&[true; LEN], slice);
+    }
+}
+
+/// Check nothing bad happens by panicking during initialization of borrowed slice.
+#[test]
+fn alloc_uninitialized_with_panic() {
+    struct Dropper(bool);
+
+    impl Drop for Dropper {
+        fn drop(&mut self) {
+            // Just make sure we touch the value, to make sure miri would bite if it was
+            // unitialized
+            if self.0 {
+                panic!();
+            }
+        }
+    }
+    let mut reached_first_init = false;
+    panic::catch_unwind(AssertUnwindSafe(|| unsafe {
+        let arena: Arena<Dropper> = Arena::new();
+        arena.reserve_extend(2);
+        let uninitialized = arena.uninitialized_array();
+        assert!((*uninitialized).len() >= 2);
+        ptr::write((*uninitialized)[0].as_mut_ptr(), Dropper(false));
+        reached_first_init = true;
+        panic!("To drop the arena");
+        // If it didn't panic, we would continue by initializing the second one and confirming by
+        // .alloc_uninitialized();
+    })).unwrap_err();
+    assert!(reached_first_init);
+}
+
 #[test]
 fn test_uninitialized_array() {
     let arena = Arena::with_capacity(2);
@@ -132,7 +181,7 @@ fn test_uninitialized_array() {
     arena.alloc_extend(0..2);
     unsafe {
         for (&a, b) in (&*uninit).iter().zip(0..2) {
-            assert_eq!(a, b);
+            assert_eq!(a.assume_init(), b);
         }
         assert!((&*arena.uninitialized_array()).as_ptr() != (&*uninit).as_ptr());
         arena.alloc(0);

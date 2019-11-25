@@ -73,6 +73,8 @@ use core::iter;
 use core::mem;
 use core::slice;
 
+use mem::MaybeUninit;
+
 #[cfg(test)]
 mod test;
 
@@ -273,24 +275,77 @@ impl<T> Arena<T> {
 
     /// Allocates space for a given number of values, but doesn't initialize it.
     ///
-    /// ## Unsafety and Undefined Behavior
+    /// ## Safety
     ///
-    /// The same caveats that apply to
-    /// [`std::mem::uninitialized`](https://doc.rust-lang.org/nightly/std/mem/fn.uninitialized.html)
-    /// apply here:
+    /// After calling this method, the arena considers the elements initialized. If you fail to
+    /// initialize them (which includes because of panicking during the initialization), the arena
+    /// will run destructors on the uninitialized memory. Therefore, you must initialize them.
     ///
-    /// > **This is incredibly dangerous and should not be done lightly. Deeply
-    /// consider initializing your memory with a default value instead.**
+    /// Considering how easy it is to cause undefined behaviour using this, you're advised to
+    /// prefer the other (safe) methods, like [`alloc_extend`].
     ///
-    /// In particular, it is easy to trigger undefined behavior by allocating
-    /// uninitialized values, failing to properly initialize them, and then the
-    /// `Arena` will attempt to drop them when it is dropped. Initializing an
-    /// uninitialized value is trickier than it might seem: a normal assignment
-    /// to a field will attempt to drop the old, uninitialized value, which
-    /// almost certainly also triggers undefined behavior. You must also
-    /// consider all the places where your code might "unexpectedly" drop values
-    /// earlier than it "should" because of unwinding during panics.
-    pub unsafe fn alloc_uninitialized(&self, num: usize) -> *mut [T] {
+    /// ## Example
+    ///
+    /// ```rust
+    /// use std::mem::{self, MaybeUninit};
+    /// use std::ptr;
+    /// use typed_arena::Arena;
+    ///
+    /// // Transmute from MaybeUninit slice to slice of initialized T.
+    /// // It is a separate function to preserve the lifetime of the reference.
+    /// unsafe fn transmute_uninit<A>(r: &mut [MaybeUninit<A>]) -> &mut [A] {
+    ///     mem::transmute(r)
+    /// }
+    ///
+    /// let arena: Arena<bool> = Arena::new();
+    /// let slice: &mut [bool];
+    /// unsafe {
+    ///     let uninitialized = arena.alloc_uninitialized(10);
+    ///     for elem in uninitialized.iter_mut() {
+    ///         ptr::write(elem.as_mut_ptr(), true);
+    ///     }
+    ///     slice = transmute_uninit(uninitialized);
+    /// }
+    /// ```
+    ///
+    /// ## Alternative allocation pattern
+    ///
+    /// To avoid the problem of dropping assumed to be initialized elements on panic, it is also
+    /// possible to combine the [`reserve_extend`] with [`uninitialized_array`], initialize the
+    /// elements and confirm them by this method. In such case, when there's a panic during
+    /// initialization, the already initialized elements would leak but it wouldn't cause UB.
+    ///
+    /// ```rust
+    /// use std::mem::{self, MaybeUninit};
+    /// use std::ptr;
+    /// use typed_arena::Arena;
+    ///
+    /// unsafe fn transmute_uninit<A>(r: &mut [MaybeUninit<A>]) -> &mut [A] {
+    ///     mem::transmute(r)
+    /// }
+    ///
+    /// const COUNT: usize = 2;
+    ///
+    /// let arena: Arena<String> = Arena::new();
+    ///
+    /// arena.reserve_extend(COUNT);
+    /// let slice: &mut [String];
+    /// unsafe {
+    ///     // Perform initialization before we claim the memory.
+    ///     let uninitialized = arena.uninitialized_array();
+    ///     assert!((*uninitialized).len() >= COUNT); // Ensured by the reserve_extend
+    ///     for elem in &mut (*uninitialized)[..COUNT] {
+    ///         ptr::write(elem.as_mut_ptr(), "Hello".to_owned());
+    ///     }
+    ///     let addr = (*uninitialized).as_ptr() as usize;
+    ///
+    ///     // The alloc_uninitialized returns the same memory, but "confirms" its allocation.
+    ///     slice = transmute_uninit(arena.alloc_uninitialized(COUNT));
+    ///     assert_eq!(addr, slice.as_ptr() as usize);
+    ///     assert_eq!(slice, &["Hello".to_owned(), "Hello".to_owned()]);
+    /// }
+    /// ```
+    pub unsafe fn alloc_uninitialized(&self, num: usize) -> &mut [MaybeUninit<T>] {
         let mut chunks = self.chunks.borrow_mut();
 
         debug_assert!(
@@ -304,8 +359,29 @@ impl<T> Arena<T> {
         // At this point, the current chunk must have free capacity.
         let next_item_index = chunks.current.len();
         chunks.current.set_len(next_item_index + num);
-        // Extend the lifetime...
-        &mut chunks.current[next_item_index..] as *mut _
+
+        // Go through pointers, to make sure we never create a reference to uninitialized T.
+        let start = chunks.current.as_mut_ptr().offset(next_item_index as isize);
+        let start_uninit = start as *mut MaybeUninit<T>;
+        slice::from_raw_parts_mut(start_uninit, num)
+    }
+
+    /// Makes sure there's enough continuous space for at least `num` elements.
+    ///
+    /// This may save some work if called before [`alloc_extend`]. It also allows somewhat safer
+    /// use pattern of [`alloc_uninitialized`]. On the other hand this might waste up to `n - 1`
+    /// elements of space. In case new allocation is needed, the unused ones in current chunk are
+    /// never used.
+    pub fn reserve_extend(&self, num: usize) {
+        let mut chunks = self.chunks.borrow_mut();
+
+        debug_assert!(
+            chunks.current.capacity() >= chunks.current.len(),
+            "capacity is always greater than or equal to len, so we don't need to worry about underflow"
+        );
+        if num > chunks.current.capacity() - chunks.current.len() {
+            chunks.reserve(num);
+        }
     }
 
     /// Returns unused space.
@@ -314,12 +390,20 @@ impl<T> Arena<T> {
     /// won't be dropped unless there are further calls to `alloc`,
     /// `alloc_uninitialized`, or `alloc_extend` which is why the method is
     /// safe.
-    pub fn uninitialized_array(&self) -> *mut [T] {
-        let chunks = self.chunks.borrow();
+    ///
+    /// It returns a raw pointer to avoid creating multiple mutable references to the same place.
+    /// It is up to the caller not to dereference it after any of the `alloc_` methods are called.
+    pub fn uninitialized_array(&self) -> *mut [MaybeUninit<T>] {
+        let mut chunks = self.chunks.borrow_mut();
         let len = chunks.current.capacity() - chunks.current.len();
         let next_item_index = chunks.current.len();
-        let slice = &chunks.current[next_item_index..];
-        unsafe { slice::from_raw_parts_mut(slice.as_ptr() as *mut T, len) as *mut _ }
+
+        unsafe {
+        // Go through pointers, to make sure we never create a reference to uninitialized T.
+            let start = chunks.current.as_mut_ptr().offset(next_item_index as isize);
+            let start_uninit = start as *mut MaybeUninit<T>;
+            slice::from_raw_parts_mut(start_uninit, len) as *mut _
+        }
     }
 
     /// Convert this `Arena` into a `Vec<T>`.
