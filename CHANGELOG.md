@@ -4,7 +4,7 @@ Released YYYY/MM/DD.
 
 ### Added
 
-* Added `alloc_str` to `Arena<u8>`, to be able to allocate string slices.
+* TODO (or remove section if none)
 
 ### Changed
 
@@ -25,6 +25,24 @@ Released YYYY/MM/DD.
 ### Security
 
 * TODO (or remove section if none)
+
+--------------------------------------------------------------------------------
+
+## 2.0.0-rc1
+
+Released 2019/11/26.
+
+Unless any issues are discovered or raised, we will release version 2.0.0 soon.
+
+### Added
+
+* Added `alloc_str` to `Arena<u8>`, to be able to allocate string slices.
+
+### Changed
+
+* The minimum supported rust version is now 1.36.0.
+* `alloc_uninitialized` returns `&mut [MaybeUninit<T>]` instead of `*mut [T]`,
+  which is less prone to undefined behavior.
 
 --------------------------------------------------------------------------------
 

@@ -1,6 +1,6 @@
 [package]
 name = "typed-arena"
-version = "1.7.0"
+version = "2.0.0-rc1"
 authors = ["Simon Sapin <simon.sapin@exyr.org>", "Nick Fitzgerald <fitzgen@gmail.com>"]
 license = "MIT"
 description = "The arena, a fast but limited type of allocator"
@@ -19,7 +19,7 @@ default = ["std"]
 std = []
 
 [dev-dependencies]
-criterion = "0.3"
+criterion = "0.3.0"
 
 [[bench]]
 name = "benches"
