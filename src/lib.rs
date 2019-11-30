@@ -283,7 +283,7 @@ impl<T> Arena<T> {
     /// will run destructors on the uninitialized memory. Therefore, you must initialize them.
     ///
     /// Considering how easy it is to cause undefined behaviour using this, you're advised to
-    /// prefer the other (safe) methods, like [`alloc_extend`].
+    /// prefer the other (safe) methods, like [`alloc_extend`][Arena::alloc_extend].
     ///
     /// ## Example
     ///
@@ -312,9 +312,10 @@ impl<T> Arena<T> {
     /// ## Alternative allocation pattern
     ///
     /// To avoid the problem of dropping assumed to be initialized elements on panic, it is also
-    /// possible to combine the [`reserve_extend`] with [`uninitialized_array`], initialize the
-    /// elements and confirm them by this method. In such case, when there's a panic during
-    /// initialization, the already initialized elements would leak but it wouldn't cause UB.
+    /// possible to combine the [`reserve_extend`][Arena::reserve_extend] with
+    /// [`uninitialized_array`][Arena::uninitialized_array], initialize the elements and confirm
+    /// them by this method. In such case, when there's a panic during initialization, the already
+    /// initialized elements would leak but it wouldn't cause UB.
     ///
     /// ```rust
     /// use std::mem::{self, MaybeUninit};
@@ -369,10 +370,10 @@ impl<T> Arena<T> {
 
     /// Makes sure there's enough continuous space for at least `num` elements.
     ///
-    /// This may save some work if called before [`alloc_extend`]. It also allows somewhat safer
-    /// use pattern of [`alloc_uninitialized`]. On the other hand this might waste up to `n - 1`
-    /// elements of space. In case new allocation is needed, the unused ones in current chunk are
-    /// never used.
+    /// This may save some work if called before [`alloc_extend`][Arena::alloc_extend]. It also
+    /// allows somewhat safer use pattern of [`alloc_uninitialized`][Arena::alloc_uninitialized].
+    /// On the other hand this might waste up to `n - 1` elements of space. In case new allocation
+    /// is needed, the unused ones in current chunk are never used.
     pub fn reserve_extend(&self, num: usize) {
         let mut chunks = self.chunks.borrow_mut();
 
@@ -389,8 +390,8 @@ impl<T> Arena<T> {
     ///
     /// *This unused space is still not considered "allocated".* Therefore, it
     /// won't be dropped unless there are further calls to `alloc`,
-    /// `alloc_uninitialized`, or `alloc_extend` which is why the method is
-    /// safe.
+    /// [`alloc_uninitialized`][Arena::alloc_uninitialized], or
+    /// [`alloc_extend`][Arena::alloc_extend] which is why the method is safe.
     ///
     /// It returns a raw pointer to avoid creating multiple mutable references to the same place.
     /// It is up to the caller not to dereference it after any of the `alloc_` methods are called.
