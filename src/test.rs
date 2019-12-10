@@ -318,7 +318,7 @@ fn size_hint() {
 }
 
 #[test]
-#[cfg(not(miri))]
+#[cfg_attr(miri, ignore)]
 fn size_hint_low_initial_capacities() {
     #[derive(Debug, PartialEq, Eq)]
     struct NonCopy(usize);
@@ -337,7 +337,7 @@ fn size_hint_low_initial_capacities() {
 }
 
 #[test]
-#[cfg(not(miri))]
+#[cfg_attr(miri, ignore)]
 fn size_hint_high_initial_capacities() {
     #[derive(Debug, PartialEq, Eq)]
     struct NonCopy(usize);
@@ -356,7 +356,7 @@ fn size_hint_high_initial_capacities() {
 }
 
 #[test]
-#[cfg(not(miri))]
+#[cfg_attr(miri, ignore)]
 fn size_hint_many_items() {
     #[derive(Debug, PartialEq, Eq)]
     struct NonCopy(usize);
