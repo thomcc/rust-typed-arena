@@ -20,6 +20,7 @@ Released YYYY/MM/DD.
 
 ### Fixed
 
+* Support `#![no_std]` on stable Rust.
 * TODO (or remove section if none)
 
 ### Security
