@@ -20,12 +20,21 @@ Released YYYY/MM/DD.
 
 ### Fixed
 
-* Support `#![no_std]` on stable Rust.
 * TODO (or remove section if none)
 
 ### Security
 
 * TODO (or remove section if none)
+
+--------------------------------------------------------------------------------
+
+## 2.0.1
+
+Released 2019/01/10.
+
+### Fixed
+
+* Support `#![no_std]` on stable Rust.
 
 --------------------------------------------------------------------------------
 
