@@ -22,8 +22,8 @@
 //!
 //! let monsters = Arena::new();
 //!
-//! let vegeta = monsters.alloc(Monster { level: 9001 });
-//! assert!(vegeta.level > 9000);
+//! let goku = monsters.alloc(Monster { level: 9001 });
+//! assert!(goku.level > 9000);
 //! ```
 //!
 //! ## Safe Cycles
