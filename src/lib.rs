@@ -54,6 +54,13 @@
 // 2) add and stabilize placement new.
 // 3) use an iterator. This may add far too much unsafe code.
 
+// Safety Requirements / Guarantees:
+// * a `Vec` representing a chunk is never reallocated (otherwise the already returned reference
+//   would become invalid)
+// * `chunks.current` is *always* the next chunk pushed to `chunks.rest`, i.e.,
+//   once `current` is created, `rest` won't have another chunk pushed to it until `current` is
+//   pushed to it. (needed by `ImmutableArena`)
+
 #![deny(missing_docs)]
 #![cfg_attr(not(any(feature = "std", test)), no_std)]
 
@@ -75,8 +82,11 @@ use core::str;
 
 use mem::MaybeUninit;
 
+mod immutable_arena;
 #[cfg(test)]
 mod test;
+
+pub use immutable_arena::{ImmutableArena, Index};
 
 // Initial size in bytes.
 const INITIAL_SIZE: usize = 1024;
