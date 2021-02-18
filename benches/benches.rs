@@ -2,7 +2,7 @@
 extern crate criterion;
 extern crate typed_arena;
 
-use criterion::{Criterion, ParameterizedBenchmark, Throughput};
+use criterion::{Criterion, BenchmarkId};
 
 #[derive(Default)]
 struct Small(usize);
@@ -19,25 +19,21 @@ fn allocate<T: Default>(n: usize) {
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
-    c.bench(
-        "allocate",
-        ParameterizedBenchmark::new(
-            "allocate-small",
-            |b, n| b.iter(|| allocate::<Small>(*n)),
-            (1..5).map(|n| n * 1000).collect::<Vec<usize>>(),
-        )
-        .throughput(|n| Throughput::Elements(*n as u64)),
-    );
-
-    c.bench(
-        "allocate",
-        ParameterizedBenchmark::new(
-            "allocate-big",
-            |b, n| b.iter(|| allocate::<Big>(*n)),
-            (1..5).map(|n| n * 1000).collect::<Vec<usize>>(),
-        )
-        .throughput(|n| Throughput::Elements(*n as u64)),
-    );
+    let mut group = c.benchmark_group("allocate");
+    for n in 1..5 {
+        let n = n * 1000;
+        group.throughput(criterion::Throughput::Elements(n as u64));
+        group.bench_with_input(
+            BenchmarkId::new("allocate-small", n),
+            &n,
+            |b, &n| b.iter(|| allocate::<Small>(n)),
+        );
+        group.bench_with_input(
+            BenchmarkId::new("allocate-big", n),
+            &n,
+            |b, &n| b.iter(|| allocate::<Big>(n)),
+        );
+    }
 }
 
 criterion_group!(benches, criterion_benchmark);

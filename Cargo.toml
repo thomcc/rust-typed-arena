@@ -19,7 +19,7 @@ default = ["std"]
 std = []
 
 [dev-dependencies]
-criterion = "0.3.0"
+criterion = "0.3.4"
 
 [[bench]]
 name = "benches"
