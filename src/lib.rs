@@ -399,12 +399,12 @@ impl<T> Arena<T> {
         let len = chunks.current.capacity() - chunks.current.len();
         let next_item_index = chunks.current.len();
 
-        unsafe {
+        
         // Go through pointers, to make sure we never create a reference to uninitialized T.
-            let start = chunks.current.as_mut_ptr().offset(next_item_index as isize);
+            let start = unsafe { chunks.current.as_mut_ptr().offset(next_item_index as isize) };
             let start_uninit = start as *mut MaybeUninit<T>;
-            slice::from_raw_parts_mut(start_uninit, len) as *mut _
-        }
+            unsafe { slice::from_raw_parts_mut(start_uninit, len) as *mut _ }
+        
     }
 
     /// Convert this `Arena` into a `Vec<T>`.
