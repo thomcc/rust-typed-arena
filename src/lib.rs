@@ -263,14 +263,20 @@ impl<T> Arena<T> {
                 i += 1;
             }
         }
-        let new_slice_ref = &mut chunks.current[next_item_index..];
-
-        // Extend the lifetime from that of `chunks_borrow` to that of `self`.
-        // This is OK because we’re careful to never move items
+        
+        // Avoid indexing directly, which creates a reference to the
+        // entire slice, invalidating the existing references.
+        // The returned reference receives the lifetime of `self`,
+        // which is OK because we’re careful to never move items
         // by never pushing to inner `Vec`s beyond their initial capacity.
         // The returned reference is unique (`&mut`):
         // the `Arena` never gives away references to existing items.
-        unsafe { mem::transmute::<&mut [T], &mut [T]>(new_slice_ref) }
+        unsafe {
+            slice::from_raw_parts_mut(
+                chunks.current.as_mut_ptr().add(next_item_index),
+                chunks.current.len() - next_item_index,
+            )
+        }
     }
 
     /// Allocates space for a given number of values, but doesn't initialize it.
