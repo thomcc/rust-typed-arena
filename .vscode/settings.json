@@ -1,0 +1,5 @@
+{
+    // Benchmarks are in a separate workspace for reasons documented in
+    // `benchmarks/README.md`, so `rust-analyzer` needs some help finding it.
+    "rust-analyzer.linkedProjects": ["Cargo.toml", "benchmarks/Cargo.toml"]
+}

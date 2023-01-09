@@ -328,7 +328,7 @@ fn size_hint() {
 fn check_extend_provenance() {
     let arena = Arena::new();
     let a = arena.alloc(0);
-    arena.alloc_extend([0]);
+    arena.alloc_extend(core::iter::once(1));
     *a = 1;
 }
 
@@ -336,8 +336,10 @@ fn check_extend_provenance() {
 fn size_hint_low_initial_capacities() {
     #[derive(Debug, PartialEq, Eq)]
     struct NonCopy(usize);
-
-    const MAX: usize = if cfg!(miri) { 100 } else { 25_000 };
+    #[cfg(miri)]
+    const MAX: usize = 100;
+    #[cfg(not(miri))]
+    const MAX: usize = 25_000;
     const CAP: usize = 0;
 
     for cap in CAP..(CAP + 128/* check some non-power-of-two capacities */) {
@@ -355,7 +357,10 @@ fn size_hint_high_initial_capacities() {
     #[derive(Debug, PartialEq, Eq)]
     struct NonCopy(usize);
 
-    const MAX: usize = if cfg!(miri) { 100 } else { 25_000 };
+    #[cfg(miri)]
+    const MAX: usize = 100;
+    #[cfg(not(miri))]
+    const MAX: usize = 25_000;
     const CAP: usize = 8164;
 
     for cap in CAP..(CAP + 128/* check some non-power-of-two capacities */) {
@@ -373,7 +378,10 @@ fn size_hint_many_items() {
     #[derive(Debug, PartialEq, Eq)]
     struct NonCopy(usize);
 
-    const MAX: usize = if cfg!(miri) { 500 } else { 5_000_000 };
+    #[cfg(miri)]
+    const MAX: usize = 500;
+    #[cfg(not(miri))]
+    const MAX: usize = 5_000_000;
     const CAP: usize = 16;
 
     let mut arena = Arena::with_capacity(CAP);

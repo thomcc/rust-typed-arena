@@ -30,6 +30,7 @@ jobs:
           - win32
           - beta
           - nightly
+          - msrv
         include:
           - name: linux
             os: ubuntu-latest
@@ -49,6 +50,9 @@ jobs:
           - name: nightly
             os: ubuntu-latest
             toolchain: nightly
+          - name: msrv
+            os: ubuntu-latest
+            toolchain: '1.42.0'
     steps:
       - uses: actions/checkout@v3
       - uses: dtolnay/rust-toolchain@master
@@ -57,17 +61,6 @@ jobs:
       - run: cargo check --verbose
       - run: cargo test --verbose
       - run: cargo build --no-default-features
-  MSRV:
-    name: Check MSRV
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: dtolnay/rust-toolchain@1.42.0
-      # Can't run tests because we have ed2021 crates in the dev-dependency
-      # graph, which old cargo can't parse. It seems likely that tests would
-      # pass on older versions if the crate builds and they pass on stable,
-      # though.
-      - run: cargo build --verbose
 
   # Check formatting
   rustfmt:
@@ -79,6 +72,8 @@ jobs:
         with:
           components: rustfmt
       - run: cargo fmt --all -- --check
+      - run: cargo fmt --all -- --check
+        working-directory: ./benches
 
   # linkcheck docs (we have `-Dwarnings` in RUSTFLAGS and RUSTDOCFLAGS above)
   doc:
@@ -98,3 +93,30 @@ jobs:
         with:
           components: miri, rust-src
       - run: cargo miri test --all-features
+
+  benches:
+    name: Benchmarks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
+      # Use a cache for this both because the builds are slow, and because it
+      # allows criterion to take a (very low quality) guess about perf changes.
+      - name: Cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            benches/target
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-benches-${{ hashFiles('**/Cargo.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-benches-${{ hashFiles('**/Cargo.toml') }}
+            ${{ runner.os }}-benches-
+            ${{ runner.os }}-
+      - name: Build benchmarks
+        run: cargo bench --no-run
+        working-directory: ./benches
+      - name: Run benchmarks
+        run: cargo bench
+        working-directory: ./benches

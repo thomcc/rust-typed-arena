@@ -1,0 +1,14 @@
+[package]
+name = "typed-arena-benchmarks"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+criterion = "0.4.0"
+typed-arena = { path = ".." }
+
+[[bench]]
+name = "benches"
+path = "benches.rs"
+harness = false

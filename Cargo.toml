@@ -9,6 +9,8 @@ repository = "https://github.com/SimonSapin/rust-typed-arena"
 categories = ["memory-management", "no-std"]
 keywords = ["arena"]
 readme = "./README.md"
+exclude = ["benchmarks"]
+autobenches = false
 
 [lib]
 name = "typed_arena"
@@ -18,13 +20,5 @@ path = "src/lib.rs"
 default = ["std"]
 std = []
 
-[dev-dependencies]
-criterion = "0.3.4"
-
-[[bench]]
-name = "benches"
-path = "benches/benches.rs"
-harness = false
-
-[profile.bench]
-debug = true
+[workspace]
+exclude = ["benches"]
