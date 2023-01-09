@@ -1,7 +1,3 @@
-#[macro_use]
-extern crate criterion;
-extern crate typed_arena;
-
 use criterion::{BenchmarkId, Criterion};
 
 #[derive(Default)]
@@ -32,5 +28,5 @@ fn criterion_benchmark(c: &mut Criterion) {
     }
 }
 
-criterion_group!(benches, criterion_benchmark);
-criterion_main!(benches);
+criterion::criterion_group!(benches, criterion_benchmark);
+criterion::criterion_main!(benches);
