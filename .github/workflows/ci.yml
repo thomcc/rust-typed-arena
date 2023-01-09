@@ -62,7 +62,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: dtolnay/rust-toolchain@1.41.0
+      - uses: dtolnay/rust-toolchain@1.42.0
       # Can't run tests because we have ed2021 crates in the dev-dependency
       # graph, which old cargo can't parse. It seems likely that tests would
       # pass on older versions if the crate builds and they pass on stable,
