@@ -321,6 +321,17 @@ fn size_hint() {
     }
 }
 
+// Ensure that `alloc_extend` doesn't violate provenance of
+// existing references. (Note: This test is pointless except
+// under miri).
+#[test]
+fn check_extend_provenance() {
+    let arena = Arena::new();
+    let a = arena.alloc(0);
+    arena.alloc_extend([0]);
+    *a = 1;
+}
+
 #[test]
 fn size_hint_low_initial_capacities() {
     #[derive(Debug, PartialEq, Eq)]
