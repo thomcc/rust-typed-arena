@@ -400,7 +400,7 @@ impl<T> Arena<T> {
         let next_item_index = chunks.current.len();
 
         unsafe {
-        // Go through pointers, to make sure we never create a reference to uninitialized T.
+            // Go through pointers, to make sure we never create a reference to uninitialized T.
             let start = chunks.current.as_mut_ptr().offset(next_item_index as isize);
             let start_uninit = start as *mut MaybeUninit<T>;
             slice::from_raw_parts_mut(start_uninit, len) as *mut _

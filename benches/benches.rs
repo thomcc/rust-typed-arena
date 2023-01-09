@@ -2,7 +2,7 @@
 extern crate criterion;
 extern crate typed_arena;
 
-use criterion::{Criterion, BenchmarkId};
+use criterion::{BenchmarkId, Criterion};
 
 #[derive(Default)]
 struct Small(usize);
@@ -23,16 +23,12 @@ fn criterion_benchmark(c: &mut Criterion) {
     for n in 1..5 {
         let n = n * 1000;
         group.throughput(criterion::Throughput::Elements(n as u64));
-        group.bench_with_input(
-            BenchmarkId::new("allocate-small", n),
-            &n,
-            |b, &n| b.iter(|| allocate::<Small>(n)),
-        );
-        group.bench_with_input(
-            BenchmarkId::new("allocate-big", n),
-            &n,
-            |b, &n| b.iter(|| allocate::<Big>(n)),
-        );
+        group.bench_with_input(BenchmarkId::new("allocate-small", n), &n, |b, &n| {
+            b.iter(|| allocate::<Small>(n))
+        });
+        group.bench_with_input(BenchmarkId::new("allocate-big", n), &n, |b, &n| {
+            b.iter(|| allocate::<Big>(n))
+        });
     }
 }
 
