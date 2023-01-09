@@ -28,6 +28,14 @@ Released YYYY/MM/DD.
 
 --------------------------------------------------------------------------------
 
+## 2.0.2
+
+Released 2023/01/08.
+
+### Fixed
+
+* Various fixes for use under miri (soundness and provenance fixes).
+
 ## 2.0.1
 
 Released 2019/01/10.
