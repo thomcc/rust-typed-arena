@@ -62,7 +62,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: dtolnay/rust-toolchain@1.36.0
+      - uses: dtolnay/rust-toolchain@1.41.0
       # Can't run tests because we have ed2021 crates in the dev-dependency
       # graph, which old cargo can't parse. It seems likely that tests would
       # pass on older versions if the crate builds and they pass on stable,
@@ -89,13 +89,12 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo doc --all-features
 
-  # FIXME (currently fails)
-  # miri:
-  #   name: Miri
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     - uses: dtolnay/rust-toolchain@nightly
-  #       with:
-  #         components: miri, rust-src
-  #     - run: cargo miri test --all-features
+  miri:
+    name: Miri
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: miri, rust-src
+      - run: cargo miri test --all-features

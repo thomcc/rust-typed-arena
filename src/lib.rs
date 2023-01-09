@@ -70,6 +70,7 @@ use core::cell::RefCell;
 use core::cmp;
 use core::iter;
 use core::mem;
+use core::ptr;
 use core::slice;
 use core::str;
 
@@ -403,7 +404,7 @@ impl<T> Arena<T> {
             // Go through pointers, to make sure we never create a reference to uninitialized T.
             let start = chunks.current.as_mut_ptr().offset(next_item_index as isize);
             let start_uninit = start as *mut MaybeUninit<T>;
-            slice::from_raw_parts_mut(start_uninit, len) as *mut _
+            ptr::slice_from_raw_parts_mut(start_uninit, len)
         }
     }
 
