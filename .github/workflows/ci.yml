@@ -1,5 +1,11 @@
 name: CI
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
 
 env:
   RUST_BACKTRACE: short
@@ -10,7 +16,7 @@ env:
   RUSTDOCFLAGS: -Dwarnings
 
 jobs:
-  # Test on a few targets, stable, beta, and msrv
+  # Test on a few targets, stable, beta
   test:
     name: Tests - ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
@@ -22,7 +28,6 @@ jobs:
           - macos
           - win64
           - win32
-          - msrv
           - beta
           - nightly
         include:
@@ -38,9 +43,6 @@ jobs:
           - name: win32
             os: windows-latest
             toolchain: stable-i686-msvc
-          - name: msrv
-            os: ubuntu-latest
-            toolchain: '1.36.0'
           - name: beta
             os: ubuntu-latest
             toolchain: beta
@@ -55,6 +57,17 @@ jobs:
       - run: cargo check --verbose
       - run: cargo test --verbose
       - run: cargo build --no-default-features
+  MSRV:
+    name: Check MSRV
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@1.36.0
+      # Can't run tests because we have ed2021 crates in the dev-dependency
+      # graph, which old cargo can't parse. It seems likely that tests would
+      # pass on older versions if the crate builds and they pass on stable,
+      # though.
+      - run: cargo build --verbose
 
   # Check formatting
   rustfmt:
