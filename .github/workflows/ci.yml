@@ -1,0 +1,88 @@
+name: CI
+on: [push, pull_request]
+
+env:
+  RUST_BACKTRACE: short
+  CARGO_INCREMENTAL: 0
+  CARGO_NET_RETRY: 10
+  RUSTUP_MAX_RETRIES: 10
+  RUSTFLAGS: -Dwarnings
+  RUSTDOCFLAGS: -Dwarnings
+
+jobs:
+  # Test on a few targets, stable, beta, and msrv
+  test:
+    name: Tests - ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        name:
+          - linux
+          - macos
+          - win64
+          - win32
+          - msrv
+          - beta
+          - nightly
+        include:
+          - name: linux
+            os: ubuntu-latest
+            toolchain: stable
+          - name: macos
+            os: macos-latest
+            toolchain: stable
+          - name: win64
+            os: windows-latest
+            toolchain: stable
+          - name: win32
+            os: windows-latest
+            toolchain: stable-i686-msvc
+          - name: msrv
+            os: ubuntu-latest
+            toolchain: '1.36.0'
+          - name: beta
+            os: ubuntu-latest
+            toolchain: beta
+          - name: nightly
+            os: ubuntu-latest
+            toolchain: nightly
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.toolchain }}
+      - run: cargo check --verbose
+      - run: cargo test --verbose
+      - run: cargo build --no-default-features
+
+  # Check formatting
+  rustfmt:
+    name: Check formatting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - run: cargo fmt --all -- --check
+
+  # linkcheck docs (we have `-Dwarnings` in RUSTFLAGS and RUSTDOCFLAGS above)
+  doc:
+    name: Check documentation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo doc --all-features
+
+  # FIXME (currently fails)
+  # miri:
+  #   name: Miri
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - uses: dtolnay/rust-toolchain@nightly
+  #       with:
+  #         components: miri, rust-src
+  #     - run: cargo miri test --all-features
