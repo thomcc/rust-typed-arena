@@ -1,9 +1,9 @@
 # `typed-arena`
 
-[![](https://docs.rs/typed-arena/badge.svg)](https://docs.rs/typed-arena/)
+[![](https://docs.rs/typed-arena/badge.svg)](https://docs.rs/typed-arena)
 [![](https://img.shields.io/crates/v/typed-arena.svg)](https://crates.io/crates/typed-arena)
 [![](https://img.shields.io/crates/d/typed-arena.svg)](https://crates.io/crates/typed-arena)
-[![Github Actions Build Status](https://github.com/SimonSapin/rust-typed-arena/workflows/CI/badge.svg)](https://github.com/SimonSapin/rust-typed-arena/actions)
+[![GitHub Actions Build Status](https://github.com/thomcc/rust-typed-arena/workflows/CI/badge.svg)](https://github.com/thomcc/rust-typed-arena/actions)
 
 **A fast (but limited) allocation arena for values of a single type.**
 
@@ -32,8 +32,8 @@ assert!(goku.level > 9000);
 ## Safe Cycles
 
 All allocated objects get the same lifetime, so you can safely create cycles
-between them. This can be useful for certain data structures, such as graphs
-and trees with parent pointers.
+between them. This can be useful for certain data structures, such as graphs and
+trees with parent pointers.
 
 ```rust
 use std::cell::Cell;
@@ -58,7 +58,7 @@ b.other.set(Some(a));
 
 Use multiple arenas if you have only a couple different types or try
 [`bumpalo`](https://crates.io/crates/bumpalo), which is a bump-allocation arena
-can allocate heterogenous types of values.
+that can allocate heterogenous types of values.
 
 ### Want allocation to return identifiers instead of references and dealing with references and lifetimes everywhere?
 
