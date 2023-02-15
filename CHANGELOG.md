@@ -34,7 +34,7 @@ Released 2023/01/08.
 
 ### Fixed
 
-* Various fixes for use under miri (soundness and provenance fixes).
+* Various fixes for use under Miri (soundness and provenance fixes).
 
 ## 2.0.1
 
@@ -68,7 +68,7 @@ Unless any issues are discovered or raised, we will release version 2.0.0 soon.
 
 ### Changed
 
-* The minimum supported rust version is now 1.36.0.
+* The minimum supported Rust version is now 1.36.0.
 * `alloc_uninitialized` returns `&mut [MaybeUninit<T>]` instead of `*mut [T]`,
   which is less prone to undefined behavior.
 
@@ -108,7 +108,7 @@ Released 2019/09/09.
 
 * Added the `Arena::iter_mut` method for mutably iterating over an arena's
   contents. [See #29 for
-  details.](https://github.com/SimonSapin/rust-typed-arena/pull/29)
+  details.](https://github.com/thomcc/rust-typed-arena/pull/29)
 
 --------------------------------------------------------------------------------
 
@@ -118,7 +118,7 @@ Released 2019/08/02.
 
 ### Added
 
-* `Arena` now implements `Default`
+* `Arena` now implements `Default`.
 
 ### Fixed
 
@@ -145,7 +145,7 @@ Released 2018/06/21.
 ### Added
 
 * Added a new, on-by-default feature named "std". Disabling this feature allows
-  the crate to be used in `#![no_std]` environments. [#15][] [#12][]
+  the crate to be used in `#![no_std]` environments. [#12][] [#15][]
 
-[#15]: https://github.com/SimonSapin/rust-typed-arena/pull/15
-[#12]: https://github.com/SimonSapin/rust-typed-arena/pull/12
+[#12]: https://github.com/thomcc/rust-typed-arena/pull/12
+[#15]: https://github.com/thomcc/rust-typed-arena/pull/15
