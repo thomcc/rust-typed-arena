@@ -171,6 +171,33 @@ impl<T> Arena<T> {
         res + chunks.current.len()
     }
 
+    /// Returns the total capacity allocated for elements.
+    ///
+    /// This may exceed the number of elements that can be added to the arena without allocating
+    /// more memory.
+    ///
+    /// ## Example
+    ///
+    /// ```
+    ///  use typed_arena::Arena;
+    ///
+    ///  let arena = Arena::with_capacity(0);
+    ///  let a = arena.alloc(1);
+    ///  let b = arena.alloc(2);
+    ///
+    ///  assert!(arena.capacity() >= 2);
+    /// ```
+    pub fn capacity(&self) -> usize {
+        let chunks = self.chunks.borrow();
+
+        let mut res = 0;
+        for vec in chunks.rest.iter() {
+            res += vec.capacity()
+        }
+
+        res + chunks.current.capacity()
+    }
+
     /// Allocates a value in the arena, and returns a mutable reference
     /// to that value.
     ///
